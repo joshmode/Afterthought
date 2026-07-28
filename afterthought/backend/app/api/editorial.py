@@ -6,13 +6,13 @@ from sqlalchemy import func
 from app.db.database import get_db
 from app.models.essay import Essay
 from app.models.user import User
+from app.models.reader import ReadingHistory
 from app.schemas.editorial import DashboardStats, EditorialCalendarItem, PublishRequest
 from app.api.deps import get_current_user
 from datetime import datetime
 
 router = APIRouter()
 
-# Simple admin check dependency
 async def get_admin_user(current_user = Depends(get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -23,10 +23,16 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
     essays_count = (await db.execute(select(func.count()).select_from(Essay))).scalar()
     published_count = (await db.execute(select(func.count()).select_from(Essay).where(Essay.status == "published"))).scalar()
     users_count = (await db.execute(select(func.count()).select_from(User))).scalar()
-    # Mocking total views correctly would require an analytics table, for now returning an estimated stat
-    # based on readers and published essays as an improvement over static mocked data
-    total_views = (users_count or 0) * (published_count or 0) * 3
-    return DashboardStats(total_essays=essays_count, published_essays=published_count, total_readers=users_count, total_views=total_views)
+
+    # Actually calculate total views from reading history table
+    views_count = (await db.execute(select(func.count()).select_from(ReadingHistory))).scalar() or 0
+
+    return DashboardStats(
+        total_essays=essays_count or 0,
+        published_essays=published_count or 0,
+        total_readers=users_count or 0,
+        total_views=views_count
+    )
 
 @router.get("/calendar", response_model=List[EditorialCalendarItem], dependencies=[Depends(get_admin_user)])
 async def get_editorial_calendar(db: AsyncSession = Depends(get_db)):

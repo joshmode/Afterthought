@@ -2,11 +2,12 @@ import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://afterthought.com'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   // Try to fetch essays to include in sitemap
   let essays = []
   try {
-    const res = await fetch('http://localhost:8000/api/essays/', { next: { revalidate: 3600 } })
+    const res = await fetch(`${apiUrl}/api/essays/`, { next: { revalidate: 3600 } })
     if (res.ok) {
       essays = await res.json()
     }
