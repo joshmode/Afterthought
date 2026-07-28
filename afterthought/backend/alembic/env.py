@@ -11,6 +11,9 @@ import os
 from app.db.database import Base
 from app.models.user import User
 from app.models.essay import Essay, Series, Theme
+from app.models.reader import ReadingHistory, UserPreferences
+from app.models.editorial import EssayVersion
+from app.models.submission import Submission, Notification
 
 config = context.config
 
@@ -21,7 +24,7 @@ target_metadata = Base.metadata
 
 config.set_main_option(
     "sqlalchemy.url",
-    os.getenv("DATABASE_URL", "postgresql+asyncpg://afterthought:password@localhost:5432/afterthought")
+    os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./afterthought.db")
 )
 
 def run_migrations_offline() -> None:

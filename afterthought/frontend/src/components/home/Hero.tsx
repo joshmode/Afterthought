@@ -43,12 +43,12 @@ export function Hero() {
           </div>
 
           <div className="flex space-x-4 pt-4">
-            <Link href="/essay/the-ethics-of-artificial-empathy"
+            <Link href="/essays"
                   className="flex items-center space-x-2 bg-white text-background px-6 py-3 rounded-md font-medium hover:bg-zinc-200 transition-colors">
               <BookOpen className="w-4 h-4" />
-              <span>Read Essay</span>
+              <span>Continue Reading</span>
             </Link>
-            <Link href="/library"
+            <Link href="/essays"
                   className="flex items-center space-x-2 border border-border px-6 py-3 rounded-md font-medium hover:bg-surface transition-colors">
               <span>Browse Library</span>
               <ArrowRight className="w-4 h-4" />

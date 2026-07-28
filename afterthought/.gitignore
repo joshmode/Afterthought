@@ -9,3 +9,4 @@ __pycache__/
 *.so
 venv/
 .env
+afterthought.db
