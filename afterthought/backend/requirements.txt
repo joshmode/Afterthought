@@ -12,3 +12,4 @@ python-multipart
 bcrypt
 email-validator
 pydantic-settings
+apscheduler

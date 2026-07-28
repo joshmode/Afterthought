@@ -39,7 +39,15 @@ class Essay(Base):
     cover_illustration = Column(String)
     is_published = Column(Boolean, default=False)
     is_current_issue = Column(Boolean, default=False)
+
+    # Extended Editorial/SEO fields
+    canonical_url = Column(String, nullable=True)
+    seo_title = Column(String, nullable=True)
+    seo_description = Column(String, nullable=True)
+    status = Column(String, default="draft") # draft, scheduled, published, archived
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     series_id = Column(Integer, ForeignKey("series.id"))
     author_id = Column(Integer, ForeignKey("users.id"))
 
