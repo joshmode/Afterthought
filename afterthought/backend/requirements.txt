@@ -9,7 +9,7 @@ pydantic
 passlib
 python-jose
 python-multipart
-bcrypt
+bcrypt==4.0.1
 email-validator
 pydantic-settings
 apscheduler

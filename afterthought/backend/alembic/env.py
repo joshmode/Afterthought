@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.essay import Essay, Series, Theme
 from app.models.reader import ReadingHistory, UserPreferences
 from app.models.editorial import EssayVersion
+from app.models.submission import Submission, Notification
 
 config = context.config
 

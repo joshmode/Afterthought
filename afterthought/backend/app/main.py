@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, essays, themes, series, engagement, search, reader, editorial
+from app.api import auth, essays, themes, series, engagement, search, reader, editorial, submission
 from app.core.scheduler import start_scheduler, stop_scheduler
 
 app = FastAPI(title="Afterthought API", description="Ideas worth thinking about twice.")
@@ -29,6 +29,7 @@ app.include_router(engagement.router, prefix="/api/engagement", tags=["engagemen
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(reader.router, prefix="/api/reader", tags=["reader"])
 app.include_router(editorial.router, prefix="/api/editorial", tags=["editorial"])
+app.include_router(submission.router, prefix="/api", tags=["submission"])
 
 @app.get("/")
 async def root():

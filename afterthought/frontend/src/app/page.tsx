@@ -41,9 +41,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-zinc-500 font-mono text-sm">
           <p>© {new Date().getFullYear()} Afterthought. All rights reserved.</p>
           <div className="space-x-6 mt-4 md:mt-0">
-            <a href="#" className="hover:text-accent-amber transition-colors">Submissions</a>
-            <a href="#" className="hover:text-accent-amber transition-colors">Twitter</a>
-            <a href="#" className="hover:text-accent-amber transition-colors">RSS</a>
+            <Link href="/submissions" className="hover:text-accent-amber transition-colors">Submissions</Link>
+            <a href="https://twitter.com/afterthought" target="_blank" rel="noopener noreferrer" className="hover:text-accent-amber transition-colors">Twitter</a>
+            <Link href="/sitemap.xml" className="hover:text-accent-amber transition-colors">RSS/Sitemap</Link>
           </div>
         </div>
       </footer>
