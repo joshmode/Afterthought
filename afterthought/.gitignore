@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.env
