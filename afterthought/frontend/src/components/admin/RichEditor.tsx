@@ -13,6 +13,7 @@ interface RichEditorProps {
 
 export function RichEditor({ value, onChange }: RichEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Placeholder.configure({
@@ -22,7 +23,10 @@ export function RichEditor({ value, onChange }: RichEditorProps) {
     content: value,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert prose-zinc max-w-none font-sans leading-loose focus:outline-none min-h-[500px]',
+        class: 'ProseMirror max-w-none font-sans leading-loose focus:outline-none min-h-[500px]',
+        role: 'textbox',
+        'aria-label': 'Essay content',
+        'aria-multiline': 'true',
       },
     },
     onUpdate: ({ editor }) => {
@@ -45,61 +49,77 @@ export function RichEditor({ value, onChange }: RichEditorProps) {
     <div className="border border-zinc-800 rounded-lg bg-zinc-900/30 overflow-hidden">
       <div className="flex flex-wrap gap-2 p-3 border-b border-zinc-800 bg-zinc-900/80">
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('bold') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Bold"
+          aria-label="Bold"
+          aria-pressed={editor.isActive('bold')}
         >
           <Bold size={16} />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('italic') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Italic"
+          aria-label="Italic"
+          aria-pressed={editor.isActive('italic')}
         >
           <Italic size={16} />
         </button>
         <div className="w-px h-6 bg-zinc-800 my-auto mx-1" />
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Heading 1"
+          aria-label="Heading 1"
+          aria-pressed={editor.isActive('heading', { level: 1 })}
         >
           <Heading1 size={16} />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Heading 2"
+          aria-label="Heading 2"
+          aria-pressed={editor.isActive('heading', { level: 2 })}
         >
           <Heading2 size={16} />
         </button>
         <div className="w-px h-6 bg-zinc-800 my-auto mx-1" />
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('blockquote') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Quote"
+          aria-label="Block quote"
+          aria-pressed={editor.isActive('blockquote')}
         >
           <Quote size={16} />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('bulletList') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Bullet List"
+          aria-label="Bullet list"
+          aria-pressed={editor.isActive('bulletList')}
         >
           <List size={16} />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('orderedList') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Numbered List"
+          aria-label="Numbered list"
+          aria-pressed={editor.isActive('orderedList')}
         >
           <ListOrdered size={16} />
         </button>
         <div className="w-px h-6 bg-zinc-800 my-auto mx-1" />
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run() }}
           className={`p-2 rounded hover:bg-zinc-800 transition-colors ${editor.isActive('codeBlock') ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
-          title="Code Block"
+          aria-label="Code block"
+          aria-pressed={editor.isActive('codeBlock')}
         >
           <Code size={16} />
         </button>

@@ -1,61 +1,102 @@
-'use client';
-import { useState, useEffect } from 'react';
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { apiFetch } from "@/lib/api";
+
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+const EMPTY_TIME = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+function calculateTimeLeft(target: string | null): TimeLeft {
+  if (!target) return EMPTY_TIME;
+  const difference = Math.max(0, new Date(target).getTime() - Date.now());
+  return {
+    days: Math.floor(difference / 86_400_000),
+    hours: Math.floor((difference / 3_600_000) % 24),
+    minutes: Math.floor((difference / 60_000) % 60),
+    seconds: Math.floor((difference / 1_000) % 60),
+  };
+}
 
 export function Countdown() {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [target, setTarget] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState("publication time");
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(EMPTY_TIME);
 
   useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      // Target next Tuesday 9 AM
-      const nextTuesday = new Date();
-      nextTuesday.setDate(now.getDate() + ((2 + 7 - now.getDay()) % 7 || 7));
-      nextTuesday.setHours(9, 0, 0, 0);
-
-      const diff = nextTuesday.getTime() - now.getTime();
-
-      return {
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / 1000 / 60) % 60),
-        seconds: Math.floor((diff / 1000) % 60)
-      };
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
+    void apiFetch<{ publication_at: string; timezone: string }>(
+      "/api/essays/next-publication",
+    )
+      .then((data) => {
+        setTarget(data.publication_at);
+        setTimezone(data.timezone);
+      })
+      .catch(() => {
+        setTarget(null);
+      });
   }, []);
 
+  useEffect(() => {
+    setTimeLeft(calculateTimeLeft(target));
+    if (!target) return;
+    const timer = window.setInterval(
+      () => setTimeLeft(calculateTimeLeft(target)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [target]);
+
   return (
-    <div className="py-12 border-y border-border bg-zinc-900/20">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
-        <div className="text-center md:text-left mb-6 md:mb-0">
-          <h3 className="font-serif text-3xl text-white mb-2">Next Publication</h3>
-          <p className="font-mono text-sm text-zinc-400">A new essay drops every Tuesday at 9 AM.</p>
+    <section
+      aria-labelledby="next-publication-heading"
+      className="border-y border-border bg-zinc-900/20 py-10"
+    >
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-6 md:flex-row">
+        <div className="text-center md:text-left">
+          <h2
+            id="next-publication-heading"
+            className="mb-2 font-serif text-3xl text-white"
+          >
+            Next publication
+          </h2>
+          <p className="font-mono text-sm text-zinc-400">
+            Tuesdays at 9:00 AM ({timezone}).
+          </p>
         </div>
-        <div className="flex space-x-6 text-center">
-          <div className="bg-background border border-zinc-800 rounded-lg p-4 min-w-[80px]">
-            <div className="text-4xl font-serif text-accent-amber">{String(timeLeft.days).padStart(2, '0')}</div>
-            <div className="font-mono text-xs text-zinc-500 uppercase tracking-widest mt-2">Days</div>
-          </div>
-          <div className="bg-background border border-zinc-800 rounded-lg p-4 min-w-[80px]">
-            <div className="text-4xl font-serif text-accent-amber">{String(timeLeft.hours).padStart(2, '0')}</div>
-            <div className="font-mono text-xs text-zinc-500 uppercase tracking-widest mt-2">Hours</div>
-          </div>
-          <div className="bg-background border border-zinc-800 rounded-lg p-4 min-w-[80px]">
-            <div className="text-4xl font-serif text-accent-amber">{String(timeLeft.minutes).padStart(2, '0')}</div>
-            <div className="font-mono text-xs text-zinc-500 uppercase tracking-widest mt-2">Mins</div>
-          </div>
-          <div className="bg-background border border-zinc-800 rounded-lg p-4 min-w-[80px]">
-            <div className="text-4xl font-serif text-accent-amber">{String(timeLeft.seconds).padStart(2, '0')}</div>
-            <div className="font-mono text-xs text-zinc-500 uppercase tracking-widest mt-2">Secs</div>
-          </div>
+        <div
+          className="grid grid-cols-4 gap-2 text-center sm:gap-4"
+          aria-live="off"
+          aria-label={`${timeLeft.days} days, ${timeLeft.hours} hours, ${timeLeft.minutes} minutes and ${timeLeft.seconds} seconds`}
+        >
+          {(
+            [
+              ["Days", timeLeft.days],
+              ["Hours", timeLeft.hours],
+              ["Mins", timeLeft.minutes],
+              ["Secs", timeLeft.seconds],
+            ] as const
+          ).map(([label, value]) => (
+            <div
+              key={label}
+              className="min-w-16 rounded-lg border border-zinc-800 bg-background p-3 sm:min-w-20 sm:p-4"
+              aria-hidden="true"
+            >
+              <div className="font-serif text-2xl text-accent-amber sm:text-4xl">
+                {String(value).padStart(2, "0")}
+              </div>
+              <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500 sm:text-xs">
+                {label}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,79 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuthStore } from "@/lib/auth";
+import { FormEvent, useEffect, useState } from "react";
 
-interface Theme {
-  id: number;
-  name: string;
-  description: string | null;
-}
+import { apiFetch } from "@/lib/api";
+import type { Theme } from "@/lib/types";
 
 export default function AdminThemes() {
-  const { token } = useAuthStore();
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newThemeName, setNewThemeName] = useState("");
-  const [newThemeDesc, setNewThemeDesc] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchThemes = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/themes/`);
-        if (res.ok) setThemes(await res.json());
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchThemes();
+    void apiFetch<Theme[]>("/api/themes/")
+      .then(setThemes)
+      .catch(() => setError("Themes could not be loaded."))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newThemeName) return;
+  async function createTheme(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/themes/`, {
+      const theme = await apiFetch<Theme>("/api/themes/", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newThemeName, description: newThemeDesc })
+        body: JSON.stringify({ name, description: description || null }),
       });
-      if (res.ok) {
-        const newTheme = await res.json();
-        setThemes(prev => [...prev, newTheme]);
-      }
-      setNewThemeName("");
-      setNewThemeDesc("");
-    } catch (e) {
-      console.error(e);
+      setThemes((items) => [...items, theme].sort((a, b) => a.name.localeCompare(b.name)));
+      setName("");
+      setDescription("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Theme creation failed.");
     }
-  };
+  }
 
   return (
-    <div>
-      <h1 className="text-3xl font-serif text-white mb-8">Theme Management</h1>
-
-      <form onSubmit={handleCreate} className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800 mb-8 space-y-4 max-w-md">
-        <h2 className="text-xl font-serif text-white">Create New Theme</h2>
-        <input
-          type="text" placeholder="Theme Name" value={newThemeName} onChange={e => setNewThemeName(e.target.value)}
-          className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white focus:border-accent-amber focus:outline-none"
-        />
-        <input
-          type="text" placeholder="Description (optional)" value={newThemeDesc} onChange={e => setNewThemeDesc(e.target.value)}
-          className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white focus:border-accent-amber focus:outline-none"
-        />
-        <button type="submit" className="bg-accent-amber text-black px-4 py-2 rounded font-medium hover:bg-amber-400">Add Theme</button>
+    <section aria-labelledby="themes-admin-heading">
+      <h1 id="themes-admin-heading" className="mb-8 font-serif text-3xl text-white">
+        Theme management
+      </h1>
+      {error && <p role="alert" className="mb-5 text-red-300">{error}</p>}
+      <form onSubmit={createTheme} className="mb-8 max-w-md space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+        <h2 className="font-serif text-xl text-white">Create theme</h2>
+        <div>
+          <label htmlFor="theme-name" className="mb-1 block text-sm text-zinc-300">Name</label>
+          <input
+            id="theme-name"
+            required
+            maxLength={100}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white focus:border-accent-amber focus:outline-none"
+          />
+        </div>
+        <div>
+          <label htmlFor="theme-description" className="mb-1 block text-sm text-zinc-300">Description</label>
+          <input
+            id="theme-description"
+            maxLength={1000}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white focus:border-accent-amber focus:outline-none"
+          />
+        </div>
+        <button type="submit" className="rounded bg-accent-amber px-4 py-2 font-medium text-black hover:bg-amber-400">
+          Add theme
+        </button>
       </form>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? <p className="text-zinc-400">Loading...</p> : themes.map(t => (
-          <div key={t.id} className="border border-zinc-800 p-4 rounded-lg bg-surface/30">
-            <h3 className="font-serif text-xl text-white">{t.name}</h3>
-            {t.description && <p className="text-sm text-zinc-400 mt-2">{t.description}</p>}
-          </div>
-        ))}
-      </div>
-    </div>
+      {loading ? (
+        <p className="text-zinc-400">Loading…</p>
+      ) : themes.length ? (
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {themes.map((theme) => (
+            <article key={theme.id} className="rounded-lg border border-zinc-800 bg-surface/30 p-4">
+              <h2 className="font-serif text-xl text-white">{theme.name}</h2>
+              {theme.description && <p className="mt-2 text-sm text-zinc-400">{theme.description}</p>}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="text-zinc-500">No themes have been created.</p>
+      )}
+    </section>
   );
 }

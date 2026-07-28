@@ -1,70 +1,103 @@
 import { ArrowRight, BookOpen } from "lucide-react";
 import Link from "next/link";
 
-export function Hero() {
+import type { Essay } from "@/lib/types";
+
+interface HeroProps {
+  currentIssue: Essay | null;
+}
+
+export function Hero({ currentIssue }: HeroProps) {
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-amber/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-burgundy/10 rounded-full blur-3xl" />
+    <section className="relative flex min-h-[78vh] items-center overflow-hidden">
+      <div aria-hidden="true" className="absolute inset-0 z-0">
+        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-accent-amber/10 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-accent-burgundy/10 blur-3xl" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 w-full grid md:grid-cols-2 gap-12 items-center z-10">
-        <div className="space-y-8">
+      <div className="z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-16 md:grid-cols-2">
+        <div className="min-w-0 space-y-8">
           <div className="space-y-2">
-            <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-none">
+            <h1 className="font-serif text-4xl font-bold leading-none tracking-tight text-white sm:text-5xl lg:text-7xl xl:text-8xl">
               AFTERTHOUGHT
             </h1>
-            <p className="font-mono text-zinc-400 tracking-wider">Ideas worth thinking about twice.</p>
-          </div>
-
-          <div className="p-8 border border-border bg-surface/50 backdrop-blur-sm rounded-lg space-y-4">
-            <div className="flex items-center space-x-2 text-xs font-mono text-accent-amber">
-              <span className="uppercase tracking-wider">Taboo Tuesdays</span>
-              <span>&bull;</span>
-              <span>Issue #018</span>
-            </div>
-
-            <h2 className="font-serif text-3xl md:text-4xl text-white font-medium leading-tight">
-              The Ethics of Artificial Empathy
-            </h2>
-
-            <p className="text-zinc-400 leading-relaxed text-sm">
-              As language models become increasingly capable of simulating emotional intelligence, we must ask ourselves: is a synthetic connection better than none at all? Or does it fundamentally devalue genuine human interaction?
+            <p className="font-mono text-zinc-400">
+              Ideas worth thinking about twice.
             </p>
-
-            <div className="flex items-center space-x-4 text-xs font-mono text-zinc-500 pt-2 border-t border-border">
-              <span>Oct 24, 2023</span>
-              <span>&bull;</span>
-              <span>12 min read</span>
-              <span>&bull;</span>
-              <span className="text-accent-gold">Technology, Ethics</span>
-            </div>
           </div>
 
-          <div className="flex space-x-4 pt-4">
-            <Link href="/essays"
-                  className="flex items-center space-x-2 bg-white text-background px-6 py-3 rounded-md font-medium hover:bg-zinc-200 transition-colors">
-              <BookOpen className="w-4 h-4" />
-              <span>Continue Reading</span>
-            </Link>
-            <Link href="/essays"
-                  className="flex items-center space-x-2 border border-border px-6 py-3 rounded-md font-medium hover:bg-surface transition-colors">
-              <span>Browse Library</span>
-              <ArrowRight className="w-4 h-4" />
+          {currentIssue ? (
+            <article className="space-y-4 rounded-lg border border-border bg-surface/70 p-6 backdrop-blur-sm sm:p-8">
+              <div className="flex items-center gap-2 text-xs font-mono text-accent-amber">
+                <span className="uppercase tracking-wider">
+                  {currentIssue.series?.name ?? "Current issue"}
+                </span>
+                {currentIssue.issue_number && (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <span>Issue #{String(currentIssue.issue_number).padStart(3, "0")}</span>
+                  </>
+                )}
+              </div>
+              <h2 className="font-serif text-3xl font-medium leading-tight text-white md:text-4xl">
+                {currentIssue.title}
+              </h2>
+              {currentIssue.abstract && (
+                <p className="text-sm leading-relaxed text-zinc-300">
+                  {currentIssue.abstract}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs font-mono text-zinc-400">
+                {currentIssue.publication_date && (
+                  <time dateTime={currentIssue.publication_date}>
+                    {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
+                      new Date(currentIssue.publication_date),
+                    )}
+                  </time>
+                )}
+                {currentIssue.reading_time_minutes && (
+                  <span>{currentIssue.reading_time_minutes} min read</span>
+                )}
+                {currentIssue.themes.length > 0 && (
+                  <span className="text-accent-gold">
+                    {currentIssue.themes.map((theme) => theme.name).join(", ")}
+                  </span>
+                )}
+              </div>
+            </article>
+          ) : (
+            <div className="rounded-lg border border-dashed border-zinc-700 p-8 text-zinc-400">
+              The next issue is being prepared. Explore the library in the meantime.
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-4 pt-2">
+            {currentIssue && (
+              <Link
+                href={`/essays/${currentIssue.slug}`}
+                className="flex items-center gap-2 rounded-md bg-white px-6 py-3 font-medium text-background transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+              >
+                <BookOpen aria-hidden="true" className="h-4 w-4" />
+                <span>Read current issue</span>
+              </Link>
+            )}
+            <Link
+              href="/essays"
+              className="flex items-center gap-2 rounded-md border border-border px-6 py-3 font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+            >
+              <span>Browse library</span>
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
-        <div className="hidden md:flex justify-center items-center">
-           {/* Abstract geometric artwork placeholder */}
-           <div className="w-full max-w-md aspect-square bg-gradient-to-br from-surface to-background border border-border rounded-2xl relative overflow-hidden flex items-center justify-center">
-              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-              <div className="w-48 h-48 rounded-full border border-accent-amber/30 absolute animate-[spin_20s_linear_infinite]"></div>
-              <div className="w-32 h-32 bg-accent-amber/20 backdrop-blur-xl rotate-45 rounded-xl border border-white/10 flex items-center justify-center shadow-2xl">
-                 <div className="w-16 h-16 bg-accent-burgundy/40 rounded-full mix-blend-screen"></div>
-              </div>
-           </div>
+        <div className="hidden items-center justify-center md:flex" aria-hidden="true">
+          <div className="relative flex aspect-square w-full max-w-md items-center justify-center overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-background">
+            <div className="motion-safe:animate-slow-spin absolute h-48 w-48 rounded-full border border-accent-amber/30" />
+            <div className="flex h-32 w-32 rotate-45 items-center justify-center rounded-xl border border-white/10 bg-accent-amber/20 shadow-2xl backdrop-blur-xl">
+              <div className="h-16 w-16 rounded-full bg-accent-burgundy/40 mix-blend-screen" />
+            </div>
+          </div>
         </div>
       </div>
     </section>

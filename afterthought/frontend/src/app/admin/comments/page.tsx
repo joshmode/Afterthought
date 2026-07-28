@@ -1,108 +1,103 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/lib/auth";
 
-interface Comment {
-    id: number;
-    content: string;
-    is_approved: boolean;
-    created_at: string;
-    user_id: number;
-    essay_id: number;
+import { apiFetch } from "@/lib/api";
+
+interface AdminComment {
+  id: number;
+  content: string;
+  is_approved: boolean;
+  created_at: string;
+  user_id: number;
+  essay_id: number;
+  author_name: string;
 }
 
 export default function AdminComments() {
-  const { token } = useAuthStore();
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchComments = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/engagement/admin/comments`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setComments(await res.json());
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (token) fetchComments();
-  }, [token]);
+    void apiFetch<AdminComment[]>("/api/engagement/admin/comments")
+      .then(setComments)
+      .catch(() => setError("The moderation queue could not be loaded."))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleApprove = async (id: number) => {
+  async function approve(id: number) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/engagement/admin/comments/${id}/approve`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        setComments(comments.map(c => c.id === id ? { ...c, is_approved: true } : c));
-      }
-    } catch (e) {
-      console.error(e);
+      const updated = await apiFetch<AdminComment>(
+        `/api/engagement/admin/comments/${id}/approve`,
+        { method: "POST" },
+      );
+      setComments((items) => items.map((item) => (item.id === id ? updated : item)));
+    } catch {
+      setError("The comment could not be approved.");
     }
-  };
+  }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
+  async function remove(id: number) {
+    if (!window.confirm("Permanently delete this comment?")) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/engagement/admin/comments/${id}`, {
+      await apiFetch<void>(`/api/engagement/admin/comments/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
-        setComments(comments.filter(c => c.id !== id));
-      }
-    } catch (e) {
-      console.error(e);
+      setComments((items) => items.filter((item) => item.id !== id));
+    } catch {
+      setError("The comment could not be deleted.");
     }
-  };
+  }
 
   return (
-    <div>
-      <h1 className="text-3xl font-serif text-white mb-8">Comment Moderation</h1>
+    <section aria-labelledby="moderation-heading">
+      <h1 id="moderation-heading" className="mb-8 font-serif text-3xl text-white">
+        Comment moderation
+      </h1>
+      {error && <p role="alert" className="mb-6 text-red-300">{error}</p>}
       {loading ? (
-          <div className="text-zinc-500 font-mono">Loading queue...</div>
+        <p className="font-mono text-zinc-500">Loading queue…</p>
       ) : comments.length === 0 ? (
-          <div className="border border-zinc-800 rounded-lg bg-surface/30 p-12 text-center text-zinc-500 font-mono">
-            No comments require moderation. You&apos;re all caught up.
-          </div>
+        <div className="rounded-lg border border-zinc-800 bg-surface/30 p-12 text-center font-mono text-zinc-500">
+          The moderation queue is empty.
+        </div>
       ) : (
-          <div className="space-y-4">
-              {comments.map(c => (
-                <div key={c.id} className="border border-zinc-800 rounded-lg bg-surface/30 p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="text-xs font-mono text-zinc-500 mb-1">
-                        Essay #{c.essay_id} &bull; {new Date(c.created_at).toLocaleString()}
-                      </div>
-                      <div className="text-zinc-300 font-sans">{c.content}</div>
-                    </div>
-                    <span className={`text-xs font-mono px-2 py-1 rounded ${c.is_approved ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                      {c.is_approved ? 'Approved' : 'Pending'}
-                    </span>
+        <div className="space-y-4">
+          {comments.map((comment) => (
+            <article key={comment.id} className="rounded-lg border border-zinc-800 bg-surface/30 p-6">
+              <div className="mb-4 flex flex-wrap justify-between gap-3">
+                <div>
+                  <div className="mb-1 font-mono text-xs text-zinc-500">
+                    Essay #{comment.essay_id} · {comment.author_name} ·{" "}
+                    <time dateTime={comment.created_at}>
+                      {new Date(comment.created_at).toLocaleString()}
+                    </time>
                   </div>
-                  <div className="flex space-x-4 border-t border-zinc-800 pt-4 mt-4">
-                    {!c.is_approved && (
-                      <button onClick={() => handleApprove(c.id)} className="text-sm text-green-400 hover:text-green-300 transition-colors font-medium">
-                        Approve
-                      </button>
-                    )}
-                    <button onClick={() => handleDelete(c.id)} className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium">
-                      Delete
-                    </button>
-                  </div>
+                  <p className="whitespace-pre-wrap text-zinc-300">{comment.content}</p>
                 </div>
-              ))}
-          </div>
+                <span className={`h-fit rounded px-2 py-1 font-mono text-xs ${
+                  comment.is_approved
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-amber-500/20 text-amber-400"
+                }`}>
+                  {comment.is_approved ? "Approved" : "Pending"}
+                </span>
+              </div>
+              <div className="flex gap-5 border-t border-zinc-800 pt-4">
+                {!comment.is_approved && (
+                  <button onClick={() => void approve(comment.id)} className="text-sm text-green-400 hover:text-green-300">
+                    Approve
+                  </button>
+                )}
+                <button onClick={() => void remove(comment.id)} className="text-sm text-red-400 hover:text-red-300">
+                  Delete
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
       )}
-    </div>
+    </section>
   );
 }

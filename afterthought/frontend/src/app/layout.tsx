@@ -1,52 +1,43 @@
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
+
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: 'swap' });
-const cormorant = Cormorant_Garamond({
-  weight: ['400', '500', '600', '700'],
-  subsets: ["latin"],
-  variable: "--font-cormorant",
-  display: 'swap'
-});
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: 'swap' });
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    template: '%s | Afterthought',
-    default: 'Afterthought | Ideas worth thinking about twice.',
+    template: "%s | Afterthought",
+    default: "Afterthought | Ideas worth thinking about twice.",
   },
-  description: "A premium digital publication dedicated to long-form essays regarding technology, society, and philosophy.",
+  description:
+    "A digital publication dedicated to long-form essays about technology, society, and philosophy.",
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": "/feed.xml" },
+  },
   openGraph: {
-    title: 'Afterthought',
-    description: 'A premium digital publication dedicated to long-form essays regarding technology, society, and philosophy.',
-    url: 'https://afterthought.com',
-    siteName: 'Afterthought',
-    images: [
-      {
-        url: 'https://afterthought.com/og.jpg',
-        width: 1200,
-        height: 630,
-      }
-    ],
-    locale: 'en_US',
-    type: 'website',
+    title: "Afterthought",
+    description:
+      "A digital publication dedicated to long-form essays about technology, society, and philosophy.",
+    url: siteUrl,
+    siteName: "Afterthought",
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Afterthought',
-    description: 'A premium digital publication dedicated to long-form essays.',
+    card: "summary",
+    title: "Afterthought",
+    description: "Ideas worth thinking about twice.",
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`scroll-smooth ${inter.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans bg-background text-zinc-100 min-h-screen antialiased flex flex-col">
+    <html lang="en" className="scroll-smooth">
+      <body className="flex min-h-screen flex-col bg-background font-sans text-zinc-100 antialiased">
         {children}
       </body>
     </html>

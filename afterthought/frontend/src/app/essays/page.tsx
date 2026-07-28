@@ -1,76 +1,164 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/layout/Navbar";
 
-interface Essay {
-  id: number;
-  title: string;
-  slug: string;
-  abstract: string | null;
-  content: string;
-  reading_time_minutes: number | null;
-  publication_date: string | null;
+import { Navbar } from "@/components/layout/Navbar";
+import { serverApiFetch } from "@/lib/server-api";
+import type { EssaySummary, Series, Theme } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Essay Library",
+  description: "Browse long-form essays from Afterthought.",
+};
+export const dynamic = "force-dynamic";
+
+interface LibraryPageProps {
+  searchParams: Promise<{
+    q?: string;
+    theme_id?: string;
+    series_id?: string;
+  }>;
 }
 
-export default function EssaysPage() {
-  const [essays, setEssays] = useState<Essay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default async function EssaysPage({ searchParams }: LibraryPageProps) {
+  const filters = await searchParams;
+  const query = filters.q?.trim() ?? "";
+  const params = new URLSearchParams();
+  if (filters.theme_id) params.set("theme_id", filters.theme_id);
+  if (filters.series_id) params.set("series_id", filters.series_id);
+  const endpoint = query
+    ? `/api/search/?q=${encodeURIComponent(query)}`
+    : `/api/essays/${params.size ? `?${params}` : ""}`;
 
-  useEffect(() => {
-    async function fetchEssays() {
-      try {
-        const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/essays/");
-        if (!res.ok) {
-          throw new Error("Failed to fetch essays");
-        }
-        const data = await res.json();
-        setEssays(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchEssays();
-  }, []);
+  const [essayResult, themeResult, seriesResult] = await Promise.allSettled([
+    serverApiFetch<EssaySummary[]>(endpoint, { cache: "no-store" }),
+    serverApiFetch<Theme[]>("/api/themes/", { next: { revalidate: 300 } }),
+    serverApiFetch<Series[]>("/api/series/", { next: { revalidate: 300 } }),
+  ]);
+  const essays = essayResult.status === "fulfilled" ? essayResult.value : [];
+  const themes = themeResult.status === "fulfilled" ? themeResult.value : [];
+  const series = seriesResult.status === "fulfilled" ? seriesResult.value : [];
+  const unavailable = essayResult.status === "rejected";
 
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-serif text-zinc-100 mb-8">Library</h1>
-        {loading && <p className="text-zinc-400 font-mono">Loading essays...</p>}
-        {error && <p className="text-red-500 font-mono">{error}</p>}
-        {!loading && !error && essays.length === 0 && (
-          <p className="text-zinc-400 font-mono">No essays published yet.</p>
-        )}
-        <div className="space-y-12 mt-12">
-          {essays.map((essay) => (
-            <article key={essay.id} className="border-b border-zinc-800 pb-12">
-              <Link href={`/essays/${essay.slug}`} className="block group">
-                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-4">
-                  <h2 className="text-3xl font-serif text-zinc-200 group-hover:text-accent-amber transition-colors">
-                    {essay.title}
-                  </h2>
-                  <span className="text-sm font-mono text-zinc-500 mt-2 md:mt-0">
-                    {essay.reading_time_minutes ? `${essay.reading_time_minutes} min read` : ""}
-                  </span>
-                </div>
-                {essay.abstract && (
-                  <p className="text-zinc-400 text-lg leading-relaxed font-sans mb-4 max-w-3xl">
-                    {essay.abstract}
-                  </p>
-                )}
-                <div className="text-sm font-mono text-zinc-500">
-                  {essay.publication_date ? new Date(essay.publication_date).toLocaleDateString() : ""}
-                </div>
-              </Link>
-            </article>
-          ))}
+      <main className="mx-auto max-w-6xl px-6 py-12">
+        <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <h1 className="mb-2 font-serif text-4xl text-zinc-100">
+              Essay library
+            </h1>
+            <p className="text-zinc-400">
+              Long-form writing on technology, society, and philosophy.
+            </p>
+          </div>
+          <form
+            role="search"
+            className="flex w-full max-w-md gap-2"
+            action="/essays"
+          >
+            <label htmlFor="library-search" className="sr-only">
+              Search essays
+            </label>
+            <input
+              id="library-search"
+              name="q"
+              type="search"
+              minLength={2}
+              maxLength={100}
+              defaultValue={query}
+              placeholder="Search the library"
+              className="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-900 px-4 py-2 text-white focus:border-accent-amber focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="rounded bg-accent-amber px-5 py-2 font-medium text-black hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Search
+            </button>
+          </form>
         </div>
+
+        <div className="mb-10 flex flex-wrap gap-3" aria-label="Library filters">
+          <Link
+            href="/essays"
+            className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:border-accent-amber"
+          >
+            All
+          </Link>
+          {themes.map((theme) => (
+            <Link
+              key={`theme-${theme.id}`}
+              href={`/essays?theme_id=${theme.id}`}
+              className="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-400 hover:border-accent-amber hover:text-white"
+            >
+              {theme.name}
+            </Link>
+          ))}
+          {series
+            .filter((item) => item.is_active)
+            .map((item) => (
+              <Link
+                key={`series-${item.id}`}
+                href={`/essays?series_id=${item.id}`}
+                className="rounded-full border border-accent-burgundy/70 px-4 py-2 text-sm text-zinc-400 hover:border-accent-amber hover:text-white"
+              >
+                {item.name}
+              </Link>
+            ))}
+        </div>
+
+        {unavailable ? (
+          <div role="alert" className="rounded border border-red-900 bg-red-950/30 p-6 text-red-200">
+            The library is temporarily unavailable. Please try again shortly.
+          </div>
+        ) : essays.length === 0 ? (
+          <div className="rounded border border-dashed border-zinc-700 p-10 text-center text-zinc-400">
+            {query ? `No essays matched “${query}”.` : "No essays are published yet."}
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {essays.map((essay) => (
+              <article key={essay.id} className="border-b border-zinc-800 pb-10">
+                <Link
+                  href={`/essays/${essay.slug}`}
+                  className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+                >
+                  <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
+                    <h2 className="font-serif text-3xl text-zinc-200 transition-colors group-hover:text-accent-amber">
+                      {essay.title}
+                    </h2>
+                    {essay.reading_time_minutes && (
+                      <span className="font-mono text-sm text-zinc-500">
+                        {essay.reading_time_minutes} min read
+                      </span>
+                    )}
+                  </div>
+                  {essay.abstract && (
+                    <p className="mb-4 max-w-3xl text-lg leading-relaxed text-zinc-400">
+                      {essay.abstract}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-3 font-mono text-sm text-zinc-500">
+                    {essay.publication_date && (
+                      <time dateTime={essay.publication_date}>
+                        {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
+                          new Date(essay.publication_date),
+                        )}
+                      </time>
+                    )}
+                    {essay.series && <span>{essay.series.name}</span>}
+                    {essay.themes.map((theme) => (
+                      <span key={theme.id} className="text-accent-gold">
+                        {theme.name}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </main>
     </>
   );

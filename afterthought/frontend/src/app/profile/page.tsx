@@ -1,156 +1,239 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import { Navbar } from "@/components/layout/Navbar";
+import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth";
 
 interface Preferences {
   email_notifications: boolean;
   anonymous_posting: boolean;
-  font_size_preference: string;
-  theme_preference: string;
+  font_size_preference: "small" | "medium" | "large";
+  theme_preference: "system" | "dark" | "light";
+}
+
+interface HistoryItem {
+  id: number;
+  progress_percent: number;
+  last_read_at: string;
+  essay: { title: string; slug: string };
+}
+
+interface BookmarkItem {
+  id: number;
+  created_at: string;
+  essay: { title: string; slug: string; reading_time_minutes: number | null };
 }
 
 export default function ProfilePage() {
-  const { token, logout } = useAuthStore();
-  const [prefs, setPrefs] = useState<Preferences | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const router = useRouter();
+  const { user, status, logout } = useAuthStore();
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchData() {
-      if (!token) return;
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-
-        // Fetch Preferences
-        const pRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reader/preferences`, { headers });
-        if (pRes.ok) setPrefs(await pRes.json());
-
-        // Fetch History
-        const hRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reader/history`, { headers });
-        if (hRes.ok) setHistory(await hRes.json());
-
-        // Fetch Bookmarks
-        const bRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/engagement/bookmarks`, { headers });
-        if (bRes.ok) setBookmarks(await bRes.json());
-
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+    if (status !== "authenticated") {
+      if (status === "anonymous") setLoading(false);
+      return;
     }
-    fetchData();
-  }, [token]);
+    Promise.all([
+      apiFetch<Preferences>("/api/reader/preferences"),
+      apiFetch<HistoryItem[]>("/api/reader/history"),
+      apiFetch<BookmarkItem[]>("/api/engagement/bookmarks"),
+    ])
+      .then(([nextPreferences, nextHistory, nextBookmarks]) => {
+        setPreferences(nextPreferences);
+        setHistory(nextHistory);
+        setBookmarks(nextBookmarks);
+      })
+      .catch(() => setError("Your reading data could not be loaded."))
+      .finally(() => setLoading(false));
+  }, [status]);
 
-  const updatePreference = async (key: string, value: any) => {
-    if (!prefs) return;
-    const newPrefs = { ...prefs, [key]: value };
-    setPrefs(newPrefs);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reader/preferences`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(newPrefs)
-    });
-  };
+  async function updatePreference<K extends keyof Preferences>(
+    key: K,
+    value: Preferences[K],
+  ) {
+    if (!preferences) return;
+    const previous = preferences;
+    const next = { ...preferences, [key]: value };
+    setPreferences(next);
+    try {
+      setPreferences(
+        await apiFetch<Preferences>("/api/reader/preferences", {
+          method: "PUT",
+          body: JSON.stringify({ [key]: value }),
+        }),
+      );
+    } catch {
+      setPreferences(previous);
+      setError("That preference could not be saved.");
+    }
+  }
 
-  if (!token) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-[60vh] flex items-center justify-center font-mono text-zinc-500">
-          Please sign in to view your profile.
-        </div>
-      </>
-    );
+  async function signOut() {
+    await logout();
+    router.push("/");
   }
 
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-6 py-16">
-        <div className="flex justify-between items-baseline mb-12 border-b border-zinc-800 pb-4">
-          <h1 className="text-4xl font-serif text-white">Your Profile</h1>
-          <button onClick={logout} className="text-sm font-mono text-red-400 hover:text-red-300">Sign Out</button>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-12">
-
-          {/* Preferences Column */}
-          <div className="md:col-span-1 space-y-8">
-            <h2 className="text-2xl font-serif text-zinc-200">Reading Preferences</h2>
-            {loading ? <p className="text-zinc-500 font-mono">Loading...</p> : (
-              <div className="space-y-6">
-                <div className="bg-surface/30 border border-zinc-800 p-6 rounded-lg space-y-4">
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={prefs?.email_notifications || false}
-                      onChange={(e) => updatePreference('email_notifications', e.target.checked)}
-                      className="form-checkbox bg-zinc-900 border-zinc-700 text-accent-amber focus:ring-accent-amber"
-                    />
-                    <span className="text-sm text-zinc-300">Email Notifications</span>
-                  </label>
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={prefs?.anonymous_posting || false}
-                      onChange={(e) => updatePreference('anonymous_posting', e.target.checked)}
-                      className="form-checkbox bg-zinc-900 border-zinc-700 text-accent-amber focus:ring-accent-amber"
-                    />
-                    <span className="text-sm text-zinc-300">Post Comments Anonymously</span>
-                  </label>
-                </div>
+      <main className="mx-auto max-w-5xl px-6 py-16">
+        {status === "loading" || loading ? (
+          <p className="font-mono text-zinc-400" aria-live="polite">
+            Loading your profile…
+          </p>
+        ) : !user ? (
+          <div className="rounded border border-zinc-800 p-10 text-center">
+            <p className="mb-5 text-zinc-400">Sign in to view your reading profile.</p>
+            <Link href="/login" className="rounded bg-accent-amber px-5 py-3 text-black">
+              Sign in
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="mb-12 flex flex-wrap items-baseline justify-between gap-4 border-b border-zinc-800 pb-5">
+              <div>
+                <h1 className="font-serif text-4xl text-white">
+                  {user.display_name ?? "Your profile"}
+                </h1>
+                <p className="mt-1 text-sm text-zinc-500">{user.email}</p>
               </div>
-            )}
-          </div>
-
-          {/* Activity Column */}
-          <div className="md:col-span-2 space-y-12">
-
-            <section>
-              <h2 className="text-2xl font-serif text-zinc-200 mb-6">Saved Bookmarks</h2>
-              {loading ? <p className="text-zinc-500 font-mono">Loading...</p> : bookmarks.length === 0 ? (
-                <div className="border border-dashed border-zinc-800 rounded p-8 text-center text-zinc-500 font-mono text-sm">
-                  You haven&apos;t bookmarked any essays yet.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {bookmarks.map((b) => (
-                    <div key={b.id} className="border border-zinc-800 bg-surface/30 p-4 rounded flex justify-between items-center">
-                      <span className="text-zinc-300 font-serif">Essay #{b.essay_id}</span>
-                      <span className="text-xs font-mono text-zinc-500">{new Date(b.created_at).toLocaleDateString()}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-serif text-zinc-200 mb-6">Reading History</h2>
-              {loading ? <p className="text-zinc-500 font-mono">Loading...</p> : history.length === 0 ? (
-                <div className="border border-dashed border-zinc-800 rounded p-8 text-center text-zinc-500 font-mono text-sm">
-                  Your reading history is empty.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {history.map((h) => (
-                    <div key={h.id} className="border border-zinc-800 bg-surface/30 p-4 rounded flex justify-between items-center">
-                      <span className="text-zinc-300 font-serif">Essay #{h.essay_id}</span>
-                      <div className="flex items-center space-x-4 text-xs font-mono text-zinc-500">
-                        <span>{h.progress_percent}% read</span>
-                        <span>{new Date(h.last_read_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-          </div>
-        </div>
+              <div className="flex gap-4">
+                <Link href="/notifications" className="text-sm text-zinc-300 hover:text-accent-amber">
+                  Notifications
+                </Link>
+                <button onClick={() => void signOut()} className="text-sm text-red-400 hover:text-red-300">
+                  Sign out
+                </button>
+              </div>
+            </div>
+            {error && <p role="alert" className="mb-6 text-red-300">{error}</p>}
+            <div className="grid gap-12 md:grid-cols-3">
+              <section className="space-y-6" aria-labelledby="preferences-heading">
+                <h2 id="preferences-heading" className="font-serif text-2xl text-zinc-200">
+                  Preferences
+                </h2>
+                {preferences && (
+                  <div className="space-y-5 rounded-lg border border-zinc-800 bg-surface/30 p-6">
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={preferences.email_notifications}
+                        onChange={(event) =>
+                          void updatePreference("email_notifications", event.target.checked)
+                        }
+                      />
+                      <span className="text-sm text-zinc-300">Email notifications</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={preferences.anonymous_posting}
+                        onChange={(event) =>
+                          void updatePreference("anonymous_posting", event.target.checked)
+                        }
+                      />
+                      <span className="text-sm text-zinc-300">Post comments anonymously</span>
+                    </label>
+                    <label className="block text-sm text-zinc-300">
+                      Reading size
+                      <select
+                        value={preferences.font_size_preference}
+                        onChange={(event) =>
+                          void updatePreference(
+                            "font_size_preference",
+                            event.target.value as Preferences["font_size_preference"],
+                          )
+                        }
+                        className="mt-2 w-full rounded border border-zinc-700 bg-zinc-900 p-2"
+                      >
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+              </section>
+              <div className="space-y-12 md:col-span-2">
+                <section aria-labelledby="bookmarks-heading">
+                  <h2 id="bookmarks-heading" className="mb-6 font-serif text-2xl text-zinc-200">
+                    Saved bookmarks
+                  </h2>
+                  {bookmarks.length ? (
+                    <ul className="space-y-3">
+                      {bookmarks.map((bookmark) => (
+                        <li key={bookmark.id}>
+                          <Link
+                            href={`/essays/${bookmark.essay.slug}`}
+                            className="flex justify-between gap-4 rounded border border-zinc-800 bg-surface/30 p-4 hover:border-accent-amber"
+                          >
+                            <span className="font-serif text-lg text-zinc-200">
+                              {bookmark.essay.title}
+                            </span>
+                            <span className="text-xs text-zinc-500">
+                              {bookmark.essay.reading_time_minutes
+                                ? `${bookmark.essay.reading_time_minutes} min`
+                                : ""}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="rounded border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+                      You have not bookmarked an essay yet.
+                    </p>
+                  )}
+                </section>
+                <section aria-labelledby="history-heading">
+                  <h2 id="history-heading" className="mb-6 font-serif text-2xl text-zinc-200">
+                    Reading history
+                  </h2>
+                  {history.length ? (
+                    <ul className="space-y-3">
+                      {history.map((item) => (
+                        <li key={item.id}>
+                          <Link
+                            href={`/essays/${item.essay.slug}`}
+                            className="block rounded border border-zinc-800 bg-surface/30 p-4 hover:border-accent-amber"
+                          >
+                            <div className="mb-3 flex justify-between gap-4">
+                              <span className="font-serif text-lg text-zinc-200">
+                                {item.essay.title}
+                              </span>
+                              <span className="text-xs text-zinc-500">
+                                {item.progress_percent}% read
+                              </span>
+                            </div>
+                            <div className="h-1 overflow-hidden rounded bg-zinc-800">
+                              <div
+                                className="h-full bg-accent-amber"
+                                style={{ width: `${item.progress_percent}%` }}
+                              />
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="rounded border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+                      Your reading history is empty.
+                    </p>
+                  )}
+                </section>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </>
   );

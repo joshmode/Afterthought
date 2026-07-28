@@ -1,55 +1,83 @@
+import logging
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from datetime import datetime
+from sqlalchemy import func, select, text, update
+
+from app.core.config import settings
 from app.db.database import AsyncSessionLocal
 from app.models.essay import Essay
-import logging
 
 logger = logging.getLogger(__name__)
+scheduler = AsyncIOScheduler(timezone=ZoneInfo(settings.publication_timezone))
+SCHEDULER_LOCK_ID = 2_026_072_801
 
-async def weekly_publish_job():
-    logger.info("Running weekly publish job...")
+
+async def weekly_publish_job() -> None:
+    logger.info("Running weekly publication job")
     async with AsyncSessionLocal() as session:
-        # 1. Archive the current issue
-        stmt_current = select(Essay).where(Essay.is_current_issue == True)
-        result_current = await session.execute(stmt_current)
-        current_essay = result_current.scalars().first()
+        async with session.begin():
+            if session.bind and session.bind.dialect.name == "postgresql":
+                acquired = (
+                    await session.execute(
+                        text("SELECT pg_try_advisory_xact_lock(:lock_id)"),
+                        {"lock_id": SCHEDULER_LOCK_ID},
+                    )
+                ).scalar()
+                if not acquired:
+                    logger.info("Another worker owns the publication lock; skipping")
+                    return
 
-        if current_essay:
-            current_essay.is_current_issue = False
-            current_essay.status = "archived"
+            now = datetime.now(timezone.utc)
+            stmt = (
+                select(Essay)
+                .where(
+                    Essay.status == "scheduled",
+                    Essay.is_published.is_(False),
+                    Essay.publication_date.is_not(None),
+                    Essay.publication_date <= now,
+                )
+                .order_by(Essay.publication_date.asc(), Essay.id.asc())
+                .with_for_update(skip_locked=True)
+            )
+            next_essay = (await session.execute(stmt)).scalars().first()
+            if not next_essay:
+                logger.info("No eligible scheduled essay found")
+                return
 
-        # 2. Find the next scheduled essay (publication_date <= now, status == scheduled)
-        now = datetime.now()
-        stmt_next = select(Essay).where(Essay.status == "scheduled", Essay.publication_date <= now).order_by(Essay.publication_date.asc())
-        result_next = await session.execute(stmt_next)
-        next_essay = result_next.scalars().first()
-
-        if next_essay:
-            # Get max issue number
-            stmt_max_issue = select(Essay).order_by(Essay.issue_number.desc().nulls_last())
-            result_max_issue = await session.execute(stmt_max_issue)
-            last_essay = result_max_issue.scalars().first()
-            next_issue_num = (last_essay.issue_number or 0) + 1 if last_essay else 1
-
+            await session.execute(
+                update(Essay)
+                .where(Essay.is_current_issue.is_(True), Essay.id != next_essay.id)
+                .values(is_current_issue=False, status="archived")
+            )
+            max_issue = (await session.execute(select(func.max(Essay.issue_number)))).scalar() or 0
             next_essay.is_published = True
             next_essay.is_current_issue = True
             next_essay.status = "published"
-            next_essay.issue_number = next_issue_num
-            logger.info(f"Published essay: {next_essay.title} (Issue #{next_issue_num})")
-        else:
-            logger.info("No scheduled essays found to publish.")
-
-        await session.commit()
+            next_essay.issue_number = next_essay.issue_number or max_issue + 1
+            logger.info("Published essay %s as issue %s", next_essay.id, next_essay.issue_number)
 
 
-scheduler = AsyncIOScheduler()
-
-def start_scheduler():
-    scheduler.add_job(weekly_publish_job, 'cron', day_of_week='tue', hour=9, minute=0) # Every Tuesday at 9:00 AM
+def start_scheduler() -> None:
+    if not settings.scheduler_enabled or scheduler.running:
+        return
+    scheduler.add_job(
+        weekly_publish_job,
+        "cron",
+        id="weekly-publication",
+        replace_existing=True,
+        day_of_week="tue",
+        hour=9,
+        minute=0,
+        misfire_grace_time=3600,
+        coalesce=True,
+        max_instances=1,
+    )
     scheduler.start()
-    logger.info("Scheduler started.")
+    logger.info("Scheduler started in %s", settings.publication_timezone)
 
-def stop_scheduler():
-    scheduler.shutdown()
+
+def stop_scheduler() -> None:
+    if scheduler.running:
+        scheduler.shutdown(wait=False)

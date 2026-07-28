@@ -1,49 +1,97 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Hero } from "@/components/home/Hero";
+import Link from "next/link";
+
 import { Countdown } from "@/components/home/Countdown";
 import { FeaturedQuote } from "@/components/home/FeaturedQuote";
+import { Hero } from "@/components/home/Hero";
 import { ThemesCloud } from "@/components/home/ThemesCloud";
-import Link from 'next/link';
+import { Navbar } from "@/components/layout/Navbar";
+import { serverApiFetch } from "@/lib/server-api";
+import type { Essay, Series, Theme } from "@/lib/types";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+async function loadHomepage() {
+  const [currentResult, themesResult, seriesResult] = await Promise.allSettled([
+    serverApiFetch<Essay>("/api/essays/current", { cache: "no-store" }),
+    serverApiFetch<Theme[]>("/api/themes/", { cache: "no-store" }),
+    serverApiFetch<Series[]>("/api/series/", { cache: "no-store" }),
+  ]);
+  return {
+    currentIssue:
+      currentResult.status === "fulfilled" ? currentResult.value : null,
+    themes: themesResult.status === "fulfilled" ? themesResult.value : [],
+    series:
+      seriesResult.status === "fulfilled"
+        ? seriesResult.value.filter((item) => item.is_active).slice(0, 3)
+        : [],
+  };
+}
+
+export default async function Home() {
+  const { currentIssue, themes, series } = await loadHomepage();
   return (
     <>
       <Navbar />
       <main>
-        <Hero />
+        <Hero currentIssue={currentIssue} />
         <Countdown />
-        <FeaturedQuote />
-
-        {/* Editorial Series Section */}
-        <section className="py-24 border-b border-border bg-background">
-          <div className="max-w-7xl mx-auto px-6">
-             <div className="flex flex-col md:flex-row justify-between items-baseline mb-12 border-b border-zinc-800 pb-4">
-                <h2 className="font-serif text-4xl text-white">Editorial Series</h2>
-                <Link href="/series" className="font-mono text-sm text-accent-amber hover:text-white transition-colors uppercase tracking-widest mt-4 md:mt-0">View all series &rarr;</Link>
-             </div>
-             <div className="grid md:grid-cols-3 gap-8">
-               {['Taboo Tuesdays', 'Fascinating Fridays', 'Submission Sundays'].map((s) => (
-                 <Link key={s} href={`/series/${s.toLowerCase().replace(/ /g, '-')}`} className="group block p-8 rounded-xl border border-zinc-800 bg-surface/50 hover:bg-zinc-900 transition-colors relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-accent-amber/5 rounded-full blur-3xl group-hover:bg-accent-amber/10 transition-colors"></div>
-                   <h3 className="font-serif text-2xl text-zinc-100 mb-4 group-hover:text-accent-amber transition-colors">{s}</h3>
-                   <p className="text-zinc-400 text-sm leading-relaxed font-sans">
-                     Deep dives into the controversial, the curious, and the curated works from our community.
-                   </p>
-                 </Link>
-               ))}
-             </div>
+        <FeaturedQuote quote={currentIssue?.featured_quote ?? null} />
+        <section
+          className="border-b border-border bg-background py-24"
+          aria-labelledby="series-heading"
+        >
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-12 flex flex-col items-baseline justify-between border-b border-zinc-800 pb-4 md:flex-row">
+              <h2 id="series-heading" className="font-serif text-4xl text-white">
+                Editorial series
+              </h2>
+              <Link
+                href="/series"
+                className="mt-4 rounded font-mono text-sm uppercase tracking-widest text-accent-amber transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber md:mt-0"
+              >
+                View all series →
+              </Link>
+            </div>
+            {series.length ? (
+              <div className="grid gap-8 md:grid-cols-3">
+                {series.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/essays?series_id=${item.id}`}
+                    className="group block rounded-xl border border-zinc-800 bg-surface/50 p-8 transition-colors hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+                  >
+                    <h3 className="mb-4 font-serif text-2xl text-zinc-100 transition-colors group-hover:text-accent-amber">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-zinc-400">
+                      {item.description ?? "Explore this ongoing editorial collection."}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-zinc-500">Editorial series are being prepared.</p>
+            )}
           </div>
         </section>
-
-        <ThemesCloud />
+        <ThemesCloud themes={themes} />
       </main>
-      <footer className="border-t border-border py-12 bg-surface/30">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-zinc-500 font-mono text-sm">
+      <footer className="border-t border-border bg-surface/30 py-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 font-mono text-sm text-zinc-500 md:flex-row">
           <p>© {new Date().getFullYear()} Afterthought. All rights reserved.</p>
-          <div className="space-x-6 mt-4 md:mt-0">
-            <Link href="/submissions" className="hover:text-accent-amber transition-colors">Submissions</Link>
-            <a href="https://twitter.com/afterthought" target="_blank" rel="noopener noreferrer" className="hover:text-accent-amber transition-colors">Twitter</a>
-            <Link href="/sitemap.xml" className="hover:text-accent-amber transition-colors">RSS/Sitemap</Link>
+          <div className="flex flex-wrap justify-center gap-6">
+            <Link href="/submissions" className="hover:text-accent-amber">
+              Submissions
+            </Link>
+            <Link href="/feedback" className="hover:text-accent-amber">
+              Feedback
+            </Link>
+            <Link href="/feed.xml" className="hover:text-accent-amber">
+              RSS
+            </Link>
+            <Link href="/sitemap.xml" className="hover:text-accent-amber">
+              Sitemap
+            </Link>
           </div>
         </div>
       </footer>

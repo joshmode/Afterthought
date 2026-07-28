@@ -8,5 +8,7 @@ __pycache__/
 *$py.class
 *.so
 venv/
+.pytest_cache/
 .env
 afterthought.db
+test-afterthought.db

@@ -1,21 +1,44 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from typing import List
+from sqlalchemy.orm import selectinload
+
 from app.db.database import get_db
 from app.models.essay import Essay
-from app.schemas.essay import EssayResponse
+from app.schemas.essay import EssaySummaryResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=List[EssayResponse])
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+@router.get("/", response_model=list[EssaySummaryResponse])
 async def search_essays(
-    q: str = Query(..., min_length=1),
-    db: AsyncSession = Depends(get_db)
+    q: str = Query(..., min_length=2, max_length=100),
+    limit: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Essay).where(
-        Essay.is_published == True,
-        (Essay.title.ilike(f"%{q}%")) | (Essay.content.ilike(f"%{q}%")) | (Essay.abstract.ilike(f"%{q}%"))
+    pattern = f"%{_escape_like(q.strip())}%"
+    stmt = (
+        select(Essay)
+        .options(
+            selectinload(Essay.series),
+            selectinload(Essay.themes),
+            selectinload(Essay.author),
+        )
+        .where(
+            Essay.is_published.is_(True),
+            Essay.status == "published",
+            or_(
+                Essay.title.ilike(pattern, escape="\\"),
+                Essay.content.ilike(pattern, escape="\\"),
+                Essay.abstract.ilike(pattern, escape="\\"),
+            ),
+        )
+        .order_by(Essay.publication_date.desc())
+        .limit(limit)
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.scalars().unique().all()

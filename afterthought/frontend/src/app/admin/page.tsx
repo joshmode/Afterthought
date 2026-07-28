@@ -2,64 +2,58 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuthStore } from "@/lib/auth";
+
+import { apiFetch } from "@/lib/api";
+
+interface Stats {
+  total_essays: number;
+  published_essays: number;
+  total_readers: number;
+  total_views: number;
+  pending_comments: number;
+  pending_submissions: number;
+}
 
 export default function AdminDashboard() {
-  const { token } = useAuthStore();
-  const [stats, setStats] = useState<{ total_essays: number; published_essays: number; total_readers: number; total_views: number } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + "/api/editorial/stats", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        if (res.ok) {
-          setStats(await res.json());
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    if (token) fetchStats();
-  }, [token]);
+    void apiFetch<Stats>("/api/editorial/stats")
+      .then(setStats)
+      .catch(() => setError("Dashboard statistics could not be loaded."));
+  }, []);
+
+  const cards: Array<[string, number | undefined]> = [
+    ["Total essays", stats?.total_essays],
+    ["Published", stats?.published_essays],
+    ["Readers", stats?.total_readers],
+    ["Total views", stats?.total_views],
+    ["Pending comments", stats?.pending_comments],
+    ["Pending submissions", stats?.pending_submissions],
+  ];
 
   return (
     <>
-      <h1 className="text-3xl font-serif text-white mb-8">Editorial Overview</h1>
-
-      {loading ? (
-        <p className="text-zinc-400">Loading stats...</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800">
-            <div className="text-sm font-mono text-zinc-500 mb-2">Total Essays</div>
-            <div className="text-3xl font-serif text-white">{stats?.total_essays || 0}</div>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-serif text-3xl text-white">Editorial overview</h1>
+        <Link
+          href="/admin/essays/new"
+          className="rounded bg-accent-amber px-5 py-3 font-medium text-black hover:bg-amber-400"
+        >
+          Write new essay
+        </Link>
+      </div>
+      {error && <p role="alert" className="mb-6 text-red-300">{error}</p>}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map(([label, value]) => (
+          <div key={label} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+            <div className="mb-2 font-mono text-sm text-zinc-500">{label}</div>
+            <div className="font-serif text-3xl text-white">
+              {value === undefined ? "—" : value.toLocaleString()}
+            </div>
           </div>
-          <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800">
-            <div className="text-sm font-mono text-zinc-500 mb-2">Published</div>
-            <div className="text-3xl font-serif text-white">{stats?.published_essays || 0}</div>
-          </div>
-          <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800">
-            <div className="text-sm font-mono text-zinc-500 mb-2">Readers</div>
-            <div className="text-3xl font-serif text-white">{stats?.total_readers || 0}</div>
-          </div>
-          <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800">
-            <div className="text-sm font-mono text-zinc-500 mb-2">Total Views</div>
-            <div className="text-3xl font-serif text-white">{stats?.total_views || 0}</div>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-12">
-          <Link href="/admin/essays/new" className="bg-accent-amber text-black px-6 py-3 rounded font-medium hover:bg-amber-400 transition-colors">
-            Write New Essay
-          </Link>
+        ))}
       </div>
     </>
   );

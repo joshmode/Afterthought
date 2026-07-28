@@ -1,54 +1,106 @@
-version: "3.8"
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: afterthought
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: afterthought
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afterthought -d afterthought"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [internal]
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [internal]
 
   backend:
     build: ./backend
-    command: ./start.sh
-    volumes:
-      - ./backend:/app
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://afterthought:password@postgres:5432/afterthought
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=supersecretkey
-    ports:
-      - "8000:8000"
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://afterthought:${POSTGRES_PASSWORD}@postgres:5432/afterthought
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?Set a random 32+ character SECRET_KEY in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      PUBLICATION_TIMEZONE: ${PUBLICATION_TIMEZONE:-Asia/Singapore}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-172.16.0.0/12}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [internal]
 
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      INTERNAL_API_URL: http://backend:8000
+      NEXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL:-http://localhost}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [internal]
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.27-alpine
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - frontend
-      - backend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks: [internal]
 
 volumes:
   postgres_data:
+  redis_data:
+
+networks:
+  internal:

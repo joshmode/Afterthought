@@ -1,120 +1,203 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar } from "@/components/layout/Navbar";
-import { useAuthStore } from "@/lib/auth";
+
 import { RichEditor } from "@/components/admin/RichEditor";
+import { apiFetch } from "@/lib/api";
+import type { Essay, Series, Theme } from "@/lib/types";
+
+type SaveAction = "draft" | "publish" | "schedule";
 
 export default function NewEssayPage() {
-  const { token } = useAuthStore();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [content, setContent] = useState("");
   const [abstract, setAbstract] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [seriesId, setSeriesId] = useState("");
+  const [themeIds, setThemeIds] = useState<number[]>([]);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [series, setSeries] = useState<Series[]>([]);
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [saving, setSaving] = useState<SaveAction | null>(null);
+  const [error, setError] = useState("");
 
-  const handleSave = async (publish: boolean) => {
-    setLoading(true);
+  useEffect(() => {
+    void Promise.all([
+      apiFetch<Series[]>("/api/series/"),
+      apiFetch<Theme[]>("/api/themes/"),
+    ]).then(([seriesItems, themeItems]) => {
+      setSeries(seriesItems);
+      setThemes(themeItems);
+    });
+  }, []);
+
+  async function save(action: SaveAction) {
+    if (!title.trim() || !slug.trim() || !content.trim()) {
+      setError("Title, slug, and content are required.");
+      return;
+    }
+    if (action === "schedule" && !scheduledDate) {
+      setError("Choose a future publication date.");
+      return;
+    }
+    setSaving(action);
+    setError("");
     try {
-      // 1. Create the essay
-      const createRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/essays/", {
+      const essay = await apiFetch<Essay>("/api/essays/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify({
           title,
           slug,
           content,
-          abstract,
-          reading_time_minutes: Math.ceil(content.split(' ').length / 200)
-        })
+          abstract: abstract || null,
+          reading_time_minutes: Math.max(
+            1,
+            Math.ceil(content.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length / 200),
+          ),
+          series_id: seriesId ? Number(seriesId) : null,
+          theme_ids: themeIds,
+        }),
       });
-      if (!createRes.ok) throw new Error("Failed to create essay");
-
-      const essay = await createRes.json();
-
-      // 2. If publish requested, hit publish endpoint
-      if (publish) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/editorial/essays/${essay.id}/publish`, {
+      if (action !== "draft") {
+        await apiFetch(`/api/editorial/essays/${essay.id}/publish`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ publish_now: true })
+          body: JSON.stringify({
+            publish_now: action === "publish",
+            scheduled_date: action === "schedule" ? scheduledDate : null,
+          }),
         });
       }
-
-      router.push("/admin");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "An unknown error occurred");
+      router.push("/admin/essays");
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The essay could not be saved.");
     } finally {
-      setLoading(false);
+      setSaving(null);
     }
-  };
-
-  if (!token) return <div className="p-8 text-white">Not Authorized</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-4xl mx-auto p-6 mt-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-serif text-white">New Essay</h1>
-          <div className="space-x-4">
-            <button
-              onClick={() => handleSave(false)}
-              disabled={loading}
-              className="text-zinc-400 hover:text-white px-4 py-2"
-            >
-              Save Draft
-            </button>
-            <button
-              onClick={() => handleSave(true)}
-              disabled={loading}
-              className="bg-accent-amber text-black px-6 py-2 rounded font-medium hover:bg-amber-400 transition-colors"
-            >
-              Publish Now
-            </button>
-          </div>
+    <section aria-labelledby="new-essay-heading">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 id="new-essay-heading" className="font-serif text-3xl text-white">New essay</h1>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => void save("draft")}
+            disabled={saving !== null}
+            className="rounded px-4 py-2 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {saving === "draft" ? "Saving…" : "Save draft"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void save("schedule")}
+            disabled={saving !== null}
+            className="rounded border border-accent-amber px-4 py-2 text-accent-amber hover:bg-accent-amber/10 disabled:opacity-50"
+          >
+            {saving === "schedule" ? "Scheduling…" : "Schedule"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void save("publish")}
+            disabled={saving !== null}
+            className="rounded bg-accent-amber px-6 py-2 font-medium text-black hover:bg-amber-400 disabled:opacity-50"
+          >
+            {saving === "publish" ? "Publishing…" : "Publish now"}
+          </button>
         </div>
-
-        {error && <div className="bg-red-500/20 text-red-500 p-4 rounded mb-6">{error}</div>}
-
-        <div className="space-y-6">
+      </div>
+      {error && <div role="alert" className="mb-6 rounded bg-red-500/10 p-4 text-red-300">{error}</div>}
+      <div className="space-y-6">
+        <div>
+          <label htmlFor="essay-title" className="sr-only">Essay title</label>
           <input
-            type="text"
-            placeholder="Essay Title"
+            id="essay-title"
+            required
+            maxLength={250}
+            placeholder="Essay title"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+            onChange={(event) => {
+              setTitle(event.target.value);
+              setSlug(
+                event.target.value
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-|-$/g, ""),
+              );
             }}
-            className="w-full bg-transparent border-b border-zinc-800 pb-4 text-4xl font-serif text-white focus:outline-none focus:border-accent-amber transition-colors"
+            className="w-full border-b border-zinc-800 bg-transparent pb-4 font-serif text-4xl text-white focus:border-accent-amber focus:outline-none"
           />
-          <div className="flex items-center text-sm font-mono text-zinc-500">
-            <span>afterthought.com/essays/</span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className="bg-transparent border-b border-zinc-800 ml-1 focus:outline-none focus:border-accent-amber text-zinc-300"
-            />
-          </div>
+        </div>
+        <div className="flex items-center text-sm font-mono text-zinc-500">
+          <label htmlFor="essay-slug">/essays/</label>
+          <input
+            id="essay-slug"
+            required
+            value={slug}
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            onChange={(event) => setSlug(event.target.value)}
+            className="ml-1 flex-1 border-b border-zinc-800 bg-transparent text-zinc-300 focus:border-accent-amber focus:outline-none"
+          />
+        </div>
+        <div>
+          <label htmlFor="essay-abstract" className="mb-2 block text-sm text-zinc-300">Abstract</label>
           <textarea
-            placeholder="Brief abstract..."
+            id="essay-abstract"
+            maxLength={2000}
             value={abstract}
-            onChange={(e) => setAbstract(e.target.value)}
-            className="w-full bg-zinc-900/50 border border-zinc-800 rounded p-4 text-zinc-300 focus:outline-none focus:border-accent-amber min-h-[100px]"
+            onChange={(event) => setAbstract(event.target.value)}
+            className="min-h-24 w-full rounded border border-zinc-800 bg-zinc-900/50 p-4 text-zinc-300 focus:border-accent-amber focus:outline-none"
           />
+        </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <label className="text-sm text-zinc-300">
+            Series
+            <select
+              value={seriesId}
+              onChange={(event) => setSeriesId(event.target.value)}
+              className="mt-2 w-full rounded border border-zinc-700 bg-zinc-900 p-3"
+            >
+              <option value="">No series</option>
+              {series.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-zinc-300">
+            Themes
+            <select
+              multiple
+              value={themeIds.map(String)}
+              onChange={(event) =>
+                setThemeIds(
+                  Array.from(event.target.selectedOptions, (option) => Number(option.value)),
+                )
+              }
+              className="mt-2 h-28 w-full rounded border border-zinc-700 bg-zinc-900 p-3"
+            >
+              {themes.map((theme) => (
+                <option key={theme.id} value={theme.id}>{theme.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-zinc-300">
+            Scheduled publication
+            <input
+              type="datetime-local"
+              value={scheduledDate}
+              onChange={(event) => setScheduledDate(event.target.value)}
+              className="mt-2 w-full rounded border border-zinc-700 bg-zinc-900 p-3"
+            />
+          </label>
+        </div>
+        <div>
+          <p className="mb-2 text-sm text-zinc-300">Essay content</p>
           <RichEditor value={content} onChange={setContent} />
         </div>
       </div>
-    </div>
+    </section>
   );
 }

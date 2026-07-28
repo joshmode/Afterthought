@@ -1,31 +1,101 @@
 # Afterthought
 
-A premium digital publication dedicated to long-form essays regarding technology, society, and philosophy.
+Afterthought is a long-form editorial publication and CMS for essays about
+technology, society, and philosophy.
 
-## Overview
-Afterthought transforms the traditional blogging experience into an editorial CMS matching the aesthetic and operational flow of premium publications. It features a rich text editor (Notion-like), automated publishing schedules, and a highly polished reader experience.
+## Architecture
 
-## Architecture & Technology Stack
-- **Frontend:** Next.js (App Router), React, Tailwind CSS, TypeScript, Zustand, Tiptap.
-- **Backend:** FastAPI, Python 3.11, SQLAlchemy (Async), Alembic, APScheduler, Passlib/Bcrypt.
-- **Infrastructure:** Docker, Docker Compose, PostgreSQL, Redis, Nginx.
+- **Web:** Next.js App Router, React, TypeScript, Tailwind CSS, Zustand and Tiptap
+- **API:** FastAPI, async SQLAlchemy, Alembic and APScheduler
+- **Data:** PostgreSQL and Redis
+- **Edge:** Nginx reverse proxy
+- **Runtime:** Docker Compose with non-root application containers, health checks,
+  persistent data volumes and a private service network
 
-## Setup & Development
-1. Ensure Docker and Docker Compose are installed.
-2. In the `backend` folder, copy `.env.example` to `.env` and configure your `DATABASE_URL` and `SECRET_KEY`.
-3. In the `frontend` folder, create `.env.local` to override `NEXT_PUBLIC_API_URL` if needed.
-4. Run `docker compose up --build` to start all services locally.
+The browser uses same-origin `/api/*` requests. Authentication is stored in a
+Secure, HttpOnly cookie; bearer tokens remain supported for non-browser API
+clients. The embedded scheduler publishes eligible issues on Tuesdays at
+09:00 in `PUBLICATION_TIMEZONE` and uses a PostgreSQL advisory lock to prevent
+duplicate execution.
 
-## Automated Publishing
-Afterthought employs `APScheduler` embedded into the FastAPI lifecycle. Every Tuesday at 9:00 AM, the system archives the "Current Issue" and publishes the next scheduled draft, automatically rolling forward issue numbers.
+## Production-style startup
 
-## Migrations
-Alembic manages database migrations. On startup, the backend container automatically runs `./start.sh` which executes `alembic upgrade head` before booting Uvicorn. For local development, set `PYTHONPATH=.` and run `alembic revision --autogenerate -m "..."`.
+1. Copy `.env.example` to `.env`.
+2. Replace every example secret and set the public origin/allowed hosts.
+3. Put a TLS-terminating load balancer or reverse proxy in front of this stack.
+4. Start the services:
 
-## Deployment
-For production, verify that ports and volumes in `docker-compose.yml` map correctly to secure networks. Nginx sits as a reverse proxy over the React frontend and FastAPI backend. Ensure you supply safe environment variables rather than falling back to defaults.
+   ```sh
+   docker compose up --build -d
+   ```
 
-## Future Roadmap
-- Deeper comment moderation queues.
-- Real-time collaborative editing (via Yjs or advanced Tiptap extensions).
-- Email newsletter synchronization.
+5. Check readiness at `/health` and sign in using the optional bootstrap admin.
+6. Remove `BOOTSTRAP_ADMIN_PASSWORD` from the environment after the first
+   successful bootstrap.
+
+The backend entrypoint runs `alembic upgrade head` before Uvicorn starts.
+PostgreSQL and Redis are not exposed on host ports. Only Nginx is published.
+
+Do not use the example secrets in production. `ENVIRONMENT=production` rejects
+short or default application secrets. The authentication cookie is Secure, so
+a real deployment must use HTTPS.
+
+## Local development
+
+Backend:
+
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv\Scripts\python.exe -m pytest -q
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm ci
+npm run lint
+npm run build
+npm run dev
+```
+
+For a host-run backend, configure `DATABASE_URL`, `REDIS_URL`, `SECRET_KEY`,
+`CORS_ORIGINS` and `ALLOWED_HOSTS`. The frontend server reads
+`INTERNAL_API_URL`; browser requests stay relative to the public origin.
+
+## Operations
+
+- Readiness checks PostgreSQL and Redis; liveness checks the API process.
+- Database and Redis data live in named Compose volumes.
+- Back up the PostgreSQL volume/database and test restores before launch.
+- Run one scheduler-bearing backend service unless all replicas share
+  PostgreSQL; the job's advisory lock coordinates concurrent replicas.
+- Use a durable log/metrics platform and alert on readiness failures, 5xx rate,
+  scheduler exceptions and resource saturation.
+- Review `FINAL_REPORT.md` before production approval. In particular, resolve
+  the recorded npm advisory gate and provide TLS at the deployment edge.
+
+## Verification
+
+The audit suite covers authentication and permissions, draft privacy, content
+sanitization, publishing, search, views, bookmarks, reading history, comment
+moderation, submissions, feedback, notifications and scheduler rollover.
+
+```powershell
+cd backend
+.\venv\Scripts\python.exe -m pytest -q
+
+cd ..\frontend
+npm run lint
+npm run build
+```
+
+With the Compose stack running:
+
+```sh
+docker compose exec -T -w /app backend sh -c 'PYTHONPATH=/app alembic check'
+```
+
+See [FINAL_REPORT.md](FINAL_REPORT.md) for the independent engineering audit.
