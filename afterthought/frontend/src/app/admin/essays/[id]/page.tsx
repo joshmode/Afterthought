@@ -34,6 +34,10 @@ export default function EditEssayPage() {
 
   async function save() {
     if (!essay) return;
+    if (!essay.title.trim() || !essay.slug.trim()) {
+      setMessage("Title and slug are required.");
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
