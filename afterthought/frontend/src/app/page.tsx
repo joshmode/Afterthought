@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 import { Countdown } from "@/components/home/Countdown";
-import { FeaturedQuote } from "@/components/home/FeaturedQuote";
 import { Hero } from "@/components/home/Hero";
 import { ThemesCloud } from "@/components/home/ThemesCloud";
 import { Navbar } from "@/components/layout/Navbar";
+
 import { serverApiFetch } from "@/lib/server-api";
 import type { Essay, Series, Theme } from "@/lib/types";
 
@@ -12,89 +12,229 @@ export const dynamic = "force-dynamic";
 
 async function loadHomepage() {
   const [currentResult, themesResult, seriesResult] = await Promise.allSettled([
-    serverApiFetch<Essay>("/api/essays/current", { cache: "no-store" }),
-    serverApiFetch<Theme[]>("/api/themes/", { cache: "no-store" }),
-    serverApiFetch<Series[]>("/api/series/", { cache: "no-store" }),
+    serverApiFetch<Essay>("/api/essays/current", {
+      cache: "no-store",
+    }),
+    serverApiFetch<Theme[]>("/api/themes/", {
+      cache: "no-store",
+    }),
+    serverApiFetch<Series[]>("/api/series/", {
+      cache: "no-store",
+    }),
   ]);
+
   return {
     currentIssue:
-      currentResult.status === "fulfilled" ? currentResult.value : null,
-    themes: themesResult.status === "fulfilled" ? themesResult.value : [],
+      currentResult.status === "fulfilled"
+        ? currentResult.value
+        : null,
+
+    themes:
+      themesResult.status === "fulfilled"
+        ? themesResult.value
+        : [],
+
     series:
       seriesResult.status === "fulfilled"
-        ? seriesResult.value.filter((item) => item.is_active).slice(0, 3)
+        ? seriesResult.value
+            .filter((item) => item.is_active)
+            .slice(0, 3)
         : [],
   };
 }
 
 export default async function Home() {
-  const { currentIssue, themes, series } = await loadHomepage();
+  const { currentIssue, themes, series } =
+    await loadHomepage();
+
   return (
     <>
       <Navbar />
+
       <main>
+
+        {/* HERO */}
+
         <Hero currentIssue={currentIssue} />
-        <Countdown />
-        <FeaturedQuote quote={currentIssue?.featured_quote ?? null} />
+
+        {/* COUNTDOWN */}
+
+        <Countdown
+          releaseDate={
+            currentIssue?.publication_date ??
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        issueNumber={currentIssue?.issue_number ?? 1}
+        />
+
+        {/* SERIES */}
+
         <section
-          className="border-b border-border bg-background py-24"
           aria-labelledby="series-heading"
+          className="py-28"
         >
           <div className="mx-auto max-w-7xl px-6">
-            <div className="mb-12 flex flex-col items-baseline justify-between border-b border-zinc-800 pb-4 md:flex-row">
-              <h2 id="series-heading" className="font-serif text-4xl text-white">
-                Editorial series
-              </h2>
-              <Link
-                href="/series"
-                className="mt-4 rounded font-mono text-sm uppercase tracking-widest text-accent-amber transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber md:mt-0"
+
+            <div className="mb-16 max-w-2xl">
+
+              <p className="mb-3 text-sm tracking-[0.25em] text-zinc-500 uppercase">
+                Editorial
+              </p>
+
+              <h2
+                id="series-heading"
+                className="font-serif text-5xl leading-tight text-white"
               >
-                View all series →
-              </Link>
+                Ongoing series.
+              </h2>
+
+              <p className="mt-5 text-lg leading-relaxed text-zinc-400">
+                Essays organised into long-term
+                editorial collections exploring
+                recurring questions rather than
+                isolated topics.
+              </p>
+
             </div>
+
             {series.length ? (
-              <div className="grid gap-8 md:grid-cols-3">
+
+              <div className="grid gap-10 md:grid-cols-3">
+
                 {series.map((item) => (
+
                   <Link
                     key={item.id}
                     href={`/essays?series_id=${item.id}`}
-                    className="group block rounded-xl border border-zinc-800 bg-surface/50 p-8 transition-colors hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+                    className="group border-t border-zinc-800 pt-8 transition-colors"
                   >
-                    <h3 className="mb-4 font-serif text-2xl text-zinc-100 transition-colors group-hover:text-accent-amber">
+
+                    <h3 className="font-serif text-3xl text-zinc-100 transition-colors group-hover:text-accent-amber">
+
                       {item.name}
+
                     </h3>
-                    <p className="text-sm leading-relaxed text-zinc-400">
-                      {item.description ?? "Explore this ongoing editorial collection."}
+
+                    <p className="mt-4 leading-7 text-zinc-400">
+
+                      {item.description ??
+                        "Explore this editorial collection."}
+
                     </p>
+
+                    <div className="mt-8 text-sm text-zinc-500 transition group-hover:text-white">
+
+                      Explore →
+
+                    </div>
+
                   </Link>
+
                 ))}
+
               </div>
+
             ) : (
-              <p className="text-zinc-500">Editorial series are being prepared.</p>
+
+              <p className="text-zinc-500">
+                Editorial series are currently
+                being prepared.
+              </p>
+
             )}
+
           </div>
         </section>
-        <ThemesCloud themes={themes} />
+
+        {/* THEMES */}
+
+        <section className="border-t border-zinc-900 py-28">
+
+          <div className="mx-auto max-w-7xl px-6">
+
+            <div className="mb-16 max-w-2xl">
+
+              <p className="mb-3 text-sm tracking-[0.25em] uppercase text-zinc-500">
+                Explore
+              </p>
+
+              <h2 className="font-serif text-5xl text-white">
+
+                Browse by theme.
+
+              </h2>
+
+              <p className="mt-5 text-lg leading-relaxed text-zinc-400">
+
+                Discover essays grouped around
+                enduring ideas rather than
+                publication dates.
+
+              </p>
+
+            </div>
+
+            <ThemesCloud themes={themes} />
+
+          </div>
+
+        </section>
+
       </main>
-      <footer className="border-t border-border bg-surface/30 py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 font-mono text-sm text-zinc-500 md:flex-row">
-          <p>© {new Date().getFullYear()} Afterthought. All rights reserved.</p>
-          <div className="flex flex-wrap justify-center gap-6">
-            <Link href="/submissions" className="hover:text-accent-amber">
+
+      <footer className="border-t border-zinc-900 py-16">
+
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 md:flex-row md:items-center md:justify-between">
+
+          <div>
+
+            <div className="text-xl font-black tracking-tight text-white">
+              afterthought.
+            </div>
+
+            <p className="mt-2 text-sm text-zinc-500">
+              © {new Date().getFullYear()} Afterthought.
+              All rights reserved.
+            </p>
+
+          </div>
+
+          <div className="flex flex-wrap gap-8 text-sm text-zinc-500">
+
+            <Link
+              href="/submissions"
+              className="hover:text-white"
+            >
               Submissions
             </Link>
-            <Link href="/feedback" className="hover:text-accent-amber">
+
+            <Link
+              href="/feedback"
+              className="hover:text-white"
+            >
               Feedback
             </Link>
-            <Link href="/feed.xml" className="hover:text-accent-amber">
+
+            <Link
+              href="/feed.xml"
+              className="hover:text-white"
+            >
               RSS
             </Link>
-            <Link href="/sitemap.xml" className="hover:text-accent-amber">
+
+            <Link
+              href="/sitemap.xml"
+              className="hover:text-white"
+            >
               Sitemap
             </Link>
+
           </div>
+
         </div>
+
       </footer>
+
     </>
   );
 }

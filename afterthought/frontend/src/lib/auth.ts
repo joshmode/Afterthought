@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { apiFetch, apiUrl } from "@/lib/api";
 import type { User } from "@/lib/types";
 
-type AuthStatus = "idle" | "loading" | "authenticated" | "anonymous";
+export type AuthStatus = "idle" | "loading" | "authenticated" | "anonymous";
 
 interface AuthState {
   user: User | null;

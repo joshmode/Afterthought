@@ -1,102 +1,137 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { apiFetch } from "@/lib/api";
-
-interface TimeLeft {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
+interface CountdownProps {
+  releaseDate: string | Date;
+  issueNumber: number;
 }
 
-const EMPTY_TIME = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+export function Countdown({
+  releaseDate,
+  issueNumber,
+}: CountdownProps) {
+  const target = useMemo(
+    () => new Date(releaseDate),
+    [releaseDate]
+  );
 
-function calculateTimeLeft(target: string | null): TimeLeft {
-  if (!target) return EMPTY_TIME;
-  const difference = Math.max(0, new Date(target).getTime() - Date.now());
-  return {
-    days: Math.floor(difference / 86_400_000),
-    hours: Math.floor((difference / 3_600_000) % 24),
-    minutes: Math.floor((difference / 60_000) % 60),
-    seconds: Math.floor((difference / 1_000) % 60),
-  };
-}
-
-export function Countdown() {
-  const [target, setTarget] = useState<string | null>(null);
-  const [timezone, setTimezone] = useState("publication time");
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(EMPTY_TIME);
+  const [remaining, setRemaining] = useState(getRemaining(target));
 
   useEffect(() => {
-    void apiFetch<{ publication_at: string; timezone: string }>(
-      "/api/essays/next-publication",
-    )
-      .then((data) => {
-        setTarget(data.publication_at);
-        setTimezone(data.timezone);
-      })
-      .catch(() => {
-        setTarget(null);
-      });
-  }, []);
+    const timer = window.setInterval(() => {
+      setRemaining(getRemaining(target));
+    }, 1000);
 
-  useEffect(() => {
-    setTimeLeft(calculateTimeLeft(target));
-    if (!target) return;
-    const timer = window.setInterval(
-      () => setTimeLeft(calculateTimeLeft(target)),
-      1000,
-    );
-    return () => window.clearInterval(timer);
+    return () => clearInterval(timer);
   }, [target]);
 
   return (
-    <section
-      aria-labelledby="next-publication-heading"
-      className="border-y border-border bg-zinc-900/20 py-10"
-    >
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-6 md:flex-row">
-        <div className="text-center md:text-left">
-          <h2
-            id="next-publication-heading"
-            className="mb-2 font-serif text-3xl text-white"
-          >
-            Next publication
-          </h2>
-          <p className="font-mono text-sm text-zinc-400">
-            Tuesdays at 9:00 AM ({timezone}).
-          </p>
-        </div>
-        <div
-          className="grid grid-cols-4 gap-2 text-center sm:gap-4"
-          aria-live="off"
-          aria-label={`${timeLeft.days} days, ${timeLeft.hours} hours, ${timeLeft.minutes} minutes and ${timeLeft.seconds} seconds`}
-        >
-          {(
-            [
-              ["Days", timeLeft.days],
-              ["Hours", timeLeft.hours],
-              ["Mins", timeLeft.minutes],
-              ["Secs", timeLeft.seconds],
-            ] as const
-          ).map(([label, value]) => (
-            <div
-              key={label}
-              className="min-w-16 rounded-lg border border-zinc-800 bg-background p-3 sm:min-w-20 sm:p-4"
-              aria-hidden="true"
-            >
-              <div className="font-serif text-2xl text-accent-amber sm:text-4xl">
-                {String(value).padStart(2, "0")}
+    <section className="mx-auto max-w-7xl px-6 py-32">
+
+      <div className="border-y border-zinc-900 py-20">
+
+        <div className="grid gap-20 lg:grid-cols-[1fr_auto]">
+
+          {/* Left */}
+
+          <div>
+
+            <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+              Next Issue
+            </p>
+
+            <h2 className="mt-5 font-serif text-5xl leading-tight text-white">
+              Issue {String(issueNumber).padStart(3, "0")}
+            </h2>
+
+            <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-400">
+              We publish deliberately rather than frequently.
+              Every issue is released only when the writing is
+              ready—not when the calendar demands it.
+            </p>
+
+          </div>
+
+          {/* Countdown */}
+
+          <div className="flex flex-col items-start lg:items-end">
+
+            <div className="text-right">
+
+              <div className="text-7xl font-black tracking-tight text-white">
+                {remaining.days}
               </div>
-              <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500 sm:text-xs">
-                {label}
+
+              <div className="mt-2 text-xs uppercase tracking-[0.3em] text-zinc-500">
+                Days Remaining
               </div>
+
             </div>
-          ))}
+
+            <div className="mt-10 flex gap-8">
+
+              <TimeBlock
+                label="Hours"
+                value={remaining.hours}
+              />
+
+              <TimeBlock
+                label="Minutes"
+                value={remaining.minutes}
+              />
+
+              <TimeBlock
+                label="Seconds"
+                value={remaining.seconds}
+              />
+
+            </div>
+
+          </div>
+
         </div>
+
       </div>
+
     </section>
   );
+}
+
+function TimeBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="text-center">
+
+      <div className="text-3xl font-semibold text-white tabular-nums">
+        {String(value).padStart(2, "0")}
+      </div>
+
+      <div className="mt-2 text-xs uppercase tracking-[0.28em] text-zinc-600">
+        {label}
+      </div>
+
+    </div>
+  );
+}
+
+function getRemaining(target: Date) {
+  const diff = Math.max(
+    target.getTime() - Date.now(),
+    0
+  );
+
+  const total = Math.floor(diff / 1000);
+
+  return {
+    days: Math.floor(total / 86400),
+    hours: Math.floor((total % 86400) / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
 }

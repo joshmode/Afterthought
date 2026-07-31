@@ -1,5 +1,7 @@
-import { ArrowRight, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
+import { CurrentIssuePanel } from "@/components/home/CurrentIssuePanel";
 
 import type { Essay } from "@/lib/types";
 
@@ -9,97 +11,138 @@ interface HeroProps {
 
 export function Hero({ currentIssue }: HeroProps) {
   return (
-    <section className="relative flex min-h-[78vh] items-center overflow-hidden">
-      <div aria-hidden="true" className="absolute inset-0 z-0">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-accent-amber/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-accent-burgundy/10 blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden">
 
-      <div className="z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-16 md:grid-cols-2">
-        <div className="min-w-0 space-y-8">
-          <div className="space-y-2">
-            <h1 className="font-serif text-4xl font-bold leading-none tracking-tight text-white sm:text-5xl lg:text-7xl xl:text-8xl">
-              AFTERTHOUGHT
-            </h1>
-            <p className="font-mono text-zinc-400">
-              Ideas worth thinking about twice.
-            </p>
+      {/* Ambient glow */}
+
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(255,184,76,0.05),transparent_58%)]"
+      />
+
+      <div className="relative mx-auto max-w-7xl px-6">
+
+        <div className="grid items-start gap-24 py-36 lg:grid-cols-[1.45fr_0.55fr]">
+
+          {/* Left Column */}
+
+          <div className="flex flex-col">
+
+            {/* Publication */}
+
+            <header className="max-w-2xl">
+
+              <h1 className="text-6xl font-black tracking-tight text-white lg:text-7xl">
+                afterthought.
+              </h1>
+
+              <p className="mt-6 max-w-md text-xl leading-relaxed text-zinc-400">
+                Ideas worth thinking about twice.
+              </p>
+
+            </header>
+
+            {/* Editorial Divider */}
+
+            <div className="mt-16 h-px w-20 bg-zinc-800" />
+
+            {/* Editorial Copy */}
+
+            <div className="mt-16 max-w-xl space-y-8">
+
+              <p className="text-lg leading-8 text-zinc-400">
+                Essays exploring technology,
+                philosophy, politics and the ideas
+                shaping modern society.
+              </p>
+
+              <p className="leading-8 text-zinc-500">
+                We publish carefully researched,
+                long-form writing that favours depth
+                over immediacy—exploring questions
+                that remain worth asking long after
+                today&apos;s headlines have faded.
+              </p>
+
+            </div>
+
+            {/* Actions */}
+
+            <div className="mt-20 flex flex-wrap items-center gap-10">
+
+              {currentIssue && (
+                <Link
+                  href={`/essays/${currentIssue.slug}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 font-medium text-black transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-200"
+                >
+                  Read current issue
+
+                  <ArrowRight size={17} strokeWidth={2.25} />
+                </Link>
+              )}
+
+              <Link
+                href="/essays"
+                className="group inline-flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+              >
+                Browse archive
+
+                <ArrowRight
+                  size={15}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </Link>
+
+            </div>
+
+            {/* Publication Metadata */}
+
+            <div className="mt-24 flex flex-wrap gap-10 border-t border-zinc-900 pt-8">
+
+              <div>
+
+                <div className="text-xs uppercase tracking-[0.3em] text-zinc-600">
+                  Publication
+                </div>
+
+                <div className="mt-2 text-sm text-zinc-400">
+                  Independent editorial journal
+                </div>
+
+              </div>
+
+              <div>
+
+                <div className="text-xs uppercase tracking-[0.3em] text-zinc-600">
+                  Focus
+                </div>
+
+                <div className="mt-2 text-sm text-zinc-400">
+                  Technology · Society · Philosophy
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
-          {currentIssue ? (
-            <article className="space-y-4 rounded-lg border border-border bg-surface/70 p-6 backdrop-blur-sm sm:p-8">
-              <div className="flex items-center gap-2 text-xs font-mono text-accent-amber">
-                <span className="uppercase tracking-wider">
-                  {currentIssue.series?.name ?? "Current issue"}
-                </span>
-                {currentIssue.issue_number && (
-                  <>
-                    <span aria-hidden="true">•</span>
-                    <span>Issue #{String(currentIssue.issue_number).padStart(3, "0")}</span>
-                  </>
-                )}
-              </div>
-              <h2 className="font-serif text-3xl font-medium leading-tight text-white md:text-4xl">
-                {currentIssue.title}
-              </h2>
-              {currentIssue.abstract && (
-                <p className="text-sm leading-relaxed text-zinc-300">
-                  {currentIssue.abstract}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs font-mono text-zinc-400">
-                {currentIssue.publication_date && (
-                  <time dateTime={currentIssue.publication_date}>
-                    {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-                      new Date(currentIssue.publication_date),
-                    )}
-                  </time>
-                )}
-                {currentIssue.reading_time_minutes && (
-                  <span>{currentIssue.reading_time_minutes} min read</span>
-                )}
-                {currentIssue.themes.length > 0 && (
-                  <span className="text-accent-gold">
-                    {currentIssue.themes.map((theme) => theme.name).join(", ")}
-                  </span>
-                )}
-              </div>
-            </article>
-          ) : (
-            <div className="rounded-lg border border-dashed border-zinc-700 p-8 text-zinc-400">
-              The next issue is being prepared. Explore the library in the meantime.
-            </div>
+          {/* Right Column */}
+
+          {currentIssue && (
+
+            <aside className="pt-10 lg:pt-20">
+
+              <CurrentIssuePanel essay={currentIssue} />
+
+            </aside>
+
           )}
 
-          <div className="flex flex-wrap gap-4 pt-2">
-            {currentIssue && (
-              <Link
-                href={`/essays/${currentIssue.slug}`}
-                className="flex items-center gap-2 rounded-md bg-white px-6 py-3 font-medium text-background transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
-              >
-                <BookOpen aria-hidden="true" className="h-4 w-4" />
-                <span>Read current issue</span>
-              </Link>
-            )}
-            <Link
-              href="/essays"
-              className="flex items-center gap-2 rounded-md border border-border px-6 py-3 font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
-            >
-              <span>Browse library</span>
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-          </div>
         </div>
 
-        <div className="hidden items-center justify-center md:flex" aria-hidden="true">
-          <div className="relative flex aspect-square w-full max-w-md items-center justify-center overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-background">
-            <div className="motion-safe:animate-slow-spin absolute h-48 w-48 rounded-full border border-accent-amber/30" />
-            <div className="flex h-32 w-32 rotate-45 items-center justify-center rounded-xl border border-white/10 bg-accent-amber/20 shadow-2xl backdrop-blur-xl">
-              <div className="h-16 w-16 rounded-full bg-accent-burgundy/40 mix-blend-screen" />
-            </div>
-          </div>
-        </div>
       </div>
+
     </section>
   );
 }

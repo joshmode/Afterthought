@@ -12,3 +12,5 @@ venv/
 .env
 afterthought.db
 test-afterthought.db
+*.zip
+afterthought.zip

@@ -21,7 +21,7 @@
   h4,
   h5,
   h6 {
-    @apply font-serif tracking-tight text-white;
+    @apply font-sans font-bold tracking-tight text-white;
   }
 
   button,
@@ -49,17 +49,36 @@
   }
 }
 
+/* ========================================================================== */
+/* ARTICLE TYPOGRAPHY */
+/* ========================================================================== */
+
 .article-content,
 .ProseMirror {
+  max-width: 68ch;
+  margin-inline: auto;
   color: rgb(212 212 216);
-  line-height: 1.85;
+  line-height: 1.9;
   overflow-wrap: anywhere;
 }
 
 .article-content > * + *,
 .ProseMirror > * + * {
-  margin-top: 1.35em;
+  margin-top: 1.7em;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Paragraphs */
+/* -------------------------------------------------------------------------- */
+
+.article-content p,
+.ProseMirror p {
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Headings */
+/* -------------------------------------------------------------------------- */
 
 .article-content h2,
 .article-content h3,
@@ -67,38 +86,71 @@
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3 {
-  margin-top: 2em;
+  margin-top: 2.75em;
+  margin-bottom: 0.75em;
   scroll-margin-top: 6rem;
-  font-family: Georgia, Cambria, "Times New Roman", serif;
-  line-height: 1.2;
+  font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: white;
 }
 
 .article-content h2,
 .ProseMirror h1 {
-  font-size: 1.9em;
+  font-size: clamp(2rem, 3vw, 2.5rem);
 }
 
 .article-content h3,
 .ProseMirror h2 {
-  font-size: 1.5em;
+  font-size: clamp(1.5rem, 2vw, 1.875rem);
 }
+
+.article-content h4,
+.ProseMirror h3 {
+  font-size: 1.25rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Links */
+/* -------------------------------------------------------------------------- */
 
 .article-content a,
 .ProseMirror a {
   color: #ffb03a;
   text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.25em;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
 }
+
+.article-content a:hover,
+.ProseMirror a:hover {
+  color: #ffd27a;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Blockquotes */
+/* -------------------------------------------------------------------------- */
 
 .article-content blockquote,
 .ProseMirror blockquote {
+  margin: 3rem auto;
+  max-width: 90%;
   border-left: 2px solid rgb(255 176 58 / 0.6);
-  padding-left: 1.25rem;
+  padding-left: 1.5rem;
   color: rgb(161 161 170);
-  font-family: Georgia, Cambria, "Times New Roman", serif;
+  font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", serif;
+  font-size: 1.35rem;
+  line-height: 1.7;
   font-style: italic;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Lists */
+/* -------------------------------------------------------------------------- */
 
 .article-content ul,
 .article-content ol,
@@ -117,21 +169,110 @@
   list-style: decimal;
 }
 
+.article-content li + li,
+.ProseMirror li + li {
+  margin-top: .45rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Images */
+/* -------------------------------------------------------------------------- */
+
+.article-content figure,
+.ProseMirror figure {
+  margin: 3rem 0;
+}
+
+.article-content img,
+.ProseMirror img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.article-content figcaption,
+.ProseMirror figcaption {
+  margin-top: .9rem;
+  text-align: center;
+  font-size: .875rem;
+  color: rgb(161 161 170);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tables */
+/* -------------------------------------------------------------------------- */
+
+.article-content table,
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2.5rem 0;
+}
+
+.article-content th,
+.article-content td,
+.ProseMirror th,
+.ProseMirror td {
+  padding: .9rem 1rem;
+  border-bottom: 1px solid rgb(39 39 42);
+  text-align: left;
+}
+
+.article-content th,
+.ProseMirror th {
+  color: white;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Horizontal rules */
+/* -------------------------------------------------------------------------- */
+
+.article-content hr,
+.ProseMirror hr {
+  margin: 4rem 0;
+  border: none;
+  border-top: 1px solid rgb(39 39 42);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Code */
+/* -------------------------------------------------------------------------- */
+
 .article-content pre,
 .ProseMirror pre {
   overflow-x: auto;
   border: 1px solid rgb(39 39 42);
-  border-radius: 0.5rem;
+  border-radius: .75rem;
   background: rgb(9 9 11);
-  padding: 1rem;
+  padding: 1.25rem;
+  font-size: .92rem;
+  line-height: 1.7;
 }
 
 .article-content :not(pre) > code,
 .ProseMirror :not(pre) > code {
-  border-radius: 0.25rem;
+  border-radius: .3rem;
   background: rgb(39 39 42);
-  padding: 0.1rem 0.3rem;
+  padding: .1rem .35rem;
   color: #d4af37;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reader sizes */
+/* -------------------------------------------------------------------------- */
+
+.reader-size-base {
+  font-size: 1rem;
+}
+
+.reader-size-large {
+  font-size: 1.125rem;
+}
+
+.reader-size-xl {
+  font-size: 1.25rem;
 }
 
 .reader-size-base {

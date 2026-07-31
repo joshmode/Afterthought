@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Instrument_Serif } from "next/font/google";
 
 import "./globals.css";
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: "400",
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost";
 
@@ -36,7 +43,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className={`${instrumentSerif.variable} scroll-smooth`}>
       <body className="flex min-h-screen flex-col bg-background font-sans text-zinc-100 antialiased">
         {children}
       </body>
