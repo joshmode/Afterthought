@@ -34,8 +34,12 @@ export default function NewEssayPage() {
   }, []);
 
   async function save(action: SaveAction) {
-    if (!title.trim() || !slug.trim() || !content.trim()) {
-      setError("Title, slug, and content are required.");
+    if (!title.trim() || !slug.trim()) {
+      setError("Title and slug are required.");
+      return;
+    }
+    if (action !== "draft" && !content.replace(/<[^>]+>/g, "").trim()) {
+      setError("Content is required to publish or schedule.");
       return;
     }
     if (action === "schedule" && !scheduledDate) {

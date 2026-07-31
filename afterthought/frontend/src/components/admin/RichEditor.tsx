@@ -23,7 +23,7 @@ export function RichEditor({ value, onChange }: RichEditorProps) {
     content: value,
     editorProps: {
       attributes: {
-        class: 'ProseMirror max-w-none font-sans leading-loose focus:outline-none min-h-[500px]',
+        class: 'ProseMirror prose prose-invert max-w-none font-sans leading-loose focus:outline-none min-h-[500px]',
         role: 'textbox',
         'aria-label': 'Essay content',
         'aria-multiline': 'true',
