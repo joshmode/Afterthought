@@ -8,6 +8,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Menu, X, Search } from "lucide-react";
 
 import { NavLink } from "./NavLink";
+import { ThemeToggle } from "./ThemeToggle";
 
 import type { User } from "@/lib/types";
 import type { AuthStatus } from "@/lib/auth";
@@ -94,14 +95,18 @@ export function MobileMenu({
                     afterthought.
                   </Link>
 
-                  <button
-                    type="button"
-                    aria-label="Close navigation"
-                    onClick={() => onOpenChange(false)}
-                    className="rounded-md p-2 text-zinc-400 hover:text-white"
-                  >
-                    <X size={22} />
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <ThemeToggle />
+
+                    <button
+                      type="button"
+                      aria-label="Close navigation"
+                      onClick={() => onOpenChange(false)}
+                      className="rounded-md p-2 text-zinc-400 hover:text-white"
+                    >
+                      <X size={22} />
+                    </button>
+                  </div>
 
                 </div>
 

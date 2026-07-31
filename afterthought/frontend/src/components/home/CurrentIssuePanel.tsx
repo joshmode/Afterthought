@@ -34,27 +34,21 @@ export function CurrentIssuePanel({
 
           <div className="flex aspect-[4/5] flex-col p-10">
 
-            <div>
-
-              <p className="text-lg font-black tracking-tight text-white">
-                afterthought.
-              </p>
-
-            </div>
-
             <div className="my-auto">
 
-              <div className="mb-10 h-px bg-zinc-800" />
-
-              <h2 className="font-serif text-4xl leading-tight text-white">
+              <h2 className="font-serif text-4xl leading-tight text-white mb-6">
                 {essay.title}
               </h2>
 
-              <div className="mt-10 h-px bg-zinc-800" />
+              {essay.abstract && (
+                <p className="text-sm leading-relaxed text-zinc-400 mb-6 line-clamp-5">
+                  {essay.abstract}
+                </p>
+              )}
 
             </div>
 
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-zinc-500">
+            <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-zinc-500 mt-auto pt-6 border-t border-zinc-800">
 
               <span>
                 issue{" "}
@@ -63,7 +57,14 @@ export function CurrentIssuePanel({
                 ).padStart(3, "0")}
               </span>
 
-              <span>afterthought.</span>
+              {essay.publication_date && (
+                <span>
+                  {new Intl.DateTimeFormat("en", {
+                    month: "short",
+                    year: "numeric",
+                  }).format(new Date(essay.publication_date))}
+                </span>
+              )}
 
             </div>
 
@@ -73,48 +74,13 @@ export function CurrentIssuePanel({
 
       </div>
 
-      {/* Editorial information */}
-
-      <div className="mt-12">
-
-        <div className="text-xs uppercase tracking-[0.3em] text-zinc-600">
-          Current issue
-        </div>
-
-        <h2 className="mt-4 font-serif text-4xl leading-tight text-white">
-          {essay.title}
-        </h2>
-
-        {essay.featured_quote && (
-
-          <blockquote className="mt-8 border-l border-zinc-700 pl-6 font-serif text-2xl italic leading-relaxed text-zinc-300">
-
-            “{essay.featured_quote}”
-
-          </blockquote>
-
-        )}
-
-        <div className="mt-10 flex flex-wrap gap-6 text-xs uppercase tracking-[0.28em] text-zinc-500">
-
-          {essay.issue_number && (
-
-            <span>
-              issue {String(essay.issue_number).padStart(3, "0")}
-            </span>
-
-          )}
-
-          {essay.reading_time_minutes && (
-
-            <span>
-              {essay.reading_time_minutes} min read
-            </span>
-
-          )}
-
-        </div>
-
+      <div className="mt-8 flex justify-center">
+        <a
+          href={`/essays/${essay.slug}`}
+          className="inline-flex items-center gap-2 rounded-full bg-accent-amber px-8 py-3 text-sm font-semibold text-black transition-all hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          Read Now
+        </a>
       </div>
 
     </article>

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Countdown } from "@/components/home/Countdown";
 import { Hero } from "@/components/home/Hero";
+import { SeriesGrid } from "@/components/home/SeriesGrid";
 import { ThemesCloud } from "@/components/home/ThemesCloud";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -36,9 +37,7 @@ async function loadHomepage() {
 
     series:
       seriesResult.status === "fulfilled"
-        ? seriesResult.value
-            .filter((item) => item.is_active)
-            .slice(0, 3)
+        ? seriesResult.value.filter((item) => item.is_active)
         : [],
   };
 }
@@ -60,11 +59,7 @@ export default async function Home() {
         {/* COUNTDOWN */}
 
         <Countdown
-          releaseDate={
-            currentIssue?.publication_date ??
-          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        issueNumber={currentIssue?.issue_number ?? 1}
+          issueNumber={(currentIssue?.issue_number ?? 0) + 1}
         />
 
         {/* SERIES */}
@@ -83,12 +78,12 @@ export default async function Home() {
 
               <h2
                 id="series-heading"
-                className="font-serif text-5xl leading-tight text-white"
+                className="font-serif text-5xl leading-tight text-zinc-900 dark:text-white"
               >
                 Ongoing series.
               </h2>
 
-              <p className="mt-5 text-lg leading-relaxed text-zinc-400">
+              <p className="mt-5 text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
                 Essays organised into long-term
                 editorial collections exploring
                 recurring questions rather than
@@ -97,58 +92,14 @@ export default async function Home() {
 
             </div>
 
-            {series.length ? (
-
-              <div className="grid gap-10 md:grid-cols-3">
-
-                {series.map((item) => (
-
-                  <Link
-                    key={item.id}
-                    href={`/essays?series_id=${item.id}`}
-                    className="group border-t border-zinc-800 pt-8 transition-colors"
-                  >
-
-                    <h3 className="font-serif text-3xl text-zinc-100 transition-colors group-hover:text-accent-amber">
-
-                      {item.name}
-
-                    </h3>
-
-                    <p className="mt-4 leading-7 text-zinc-400">
-
-                      {item.description ??
-                        "Explore this editorial collection."}
-
-                    </p>
-
-                    <div className="mt-8 text-sm text-zinc-500 transition group-hover:text-white">
-
-                      Explore →
-
-                    </div>
-
-                  </Link>
-
-                ))}
-
-              </div>
-
-            ) : (
-
-              <p className="text-zinc-500">
-                Editorial series are currently
-                being prepared.
-              </p>
-
-            )}
+            <SeriesGrid series={series} />
 
           </div>
         </section>
 
         {/* THEMES */}
 
-        <section className="border-t border-zinc-900 py-28">
+        <section className="border-t border-zinc-200 dark:border-zinc-800 py-28">
 
           <div className="mx-auto max-w-7xl px-6">
 
@@ -158,13 +109,13 @@ export default async function Home() {
                 Explore
               </p>
 
-              <h2 className="font-serif text-5xl text-white">
+              <h2 className="font-serif text-5xl text-zinc-900 dark:text-white">
 
                 Browse by theme.
 
               </h2>
 
-              <p className="mt-5 text-lg leading-relaxed text-zinc-400">
+              <p className="mt-5 text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
 
                 Discover essays grouped around
                 enduring ideas rather than
@@ -182,13 +133,13 @@ export default async function Home() {
 
       </main>
 
-      <footer className="border-t border-zinc-900 py-16">
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-16">
 
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 md:flex-row md:items-center md:justify-between">
 
           <div>
 
-            <div className="text-xl font-black tracking-tight text-white">
+            <div className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">
               afterthought.
             </div>
 
@@ -203,28 +154,28 @@ export default async function Home() {
 
             <Link
               href="/submissions"
-              className="hover:text-white"
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               Submissions
             </Link>
 
             <Link
               href="/feedback"
-              className="hover:text-white"
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               Feedback
             </Link>
 
             <Link
               href="/feed.xml"
-              className="hover:text-white"
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               RSS
             </Link>
 
             <Link
               href="/sitemap.xml"
-              className="hover:text-white"
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               Sitemap
             </Link>

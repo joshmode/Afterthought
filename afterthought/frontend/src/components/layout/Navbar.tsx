@@ -15,6 +15,7 @@ const links = [
   { href: "/themes", label: "Themes" },
   { href: "/series", label: "Series" },
   { href: "/about", label: "About" },
+  { href: "/contribute", label: "Contribute" },
 ];
 
 export function Navbar() {
@@ -41,8 +42,8 @@ export function Navbar() {
       className={clsx(
         "sticky top-0 z-50 transition-all duration-300",
         scrolled
-          ? "border-b border-zinc-900 bg-background/90 backdrop-blur-xl"
-          : "bg-background/70 backdrop-blur-lg"
+          ? "border-b border-zinc-200 dark:border-zinc-900 bg-white/90 dark:bg-background/90 backdrop-blur-xl"
+          : "bg-white/70 dark:bg-background/70 backdrop-blur-lg"
       )}
     >
       <nav
@@ -56,7 +57,7 @@ export function Navbar() {
 
         <Link
           href="/"
-          className="shrink-0 rounded text-2xl font-black tracking-tight text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+          className="shrink-0 rounded text-2xl font-black tracking-tight text-black dark:text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
         >
           afterthought.
         </Link>

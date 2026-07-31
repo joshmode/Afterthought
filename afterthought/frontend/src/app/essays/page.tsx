@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { serverApiFetch } from "@/lib/server-api";
 import type { EssaySummary, Series, Theme } from "@/lib/types";
+import { FilterClient } from "./FilterClient";
 
 export const metadata: Metadata = {
   title: "Essay Library",
@@ -79,34 +80,12 @@ export default async function EssaysPage({ searchParams }: LibraryPageProps) {
           </form>
         </div>
 
-        <div className="mb-10 flex flex-wrap gap-3" aria-label="Library filters">
-          <Link
-            href="/essays"
-            className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:border-accent-amber"
-          >
-            All
-          </Link>
-          {themes.map((theme) => (
-            <Link
-              key={`theme-${theme.id}`}
-              href={`/essays?theme_id=${theme.id}`}
-              className="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-400 hover:border-accent-amber hover:text-white"
-            >
-              {theme.name}
-            </Link>
-          ))}
-          {series
-            .filter((item) => item.is_active)
-            .map((item) => (
-              <Link
-                key={`series-${item.id}`}
-                href={`/essays?series_id=${item.id}`}
-                className="rounded-full border border-accent-burgundy/70 px-4 py-2 text-sm text-zinc-400 hover:border-accent-amber hover:text-white"
-              >
-                {item.name}
-              </Link>
-            ))}
-        </div>
+        <FilterClient
+          themes={themes}
+          series={series}
+          currentThemeId={filters.theme_id}
+          currentSeriesId={filters.series_id}
+        />
 
         {unavailable ? (
           <div role="alert" className="rounded border border-red-900 bg-red-950/30 p-6 text-red-200">
