@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import type { User } from "@/lib/types";
 import type { AuthStatus } from "@/lib/auth";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface UtilityNavProps {
   user: User | null;
@@ -17,6 +18,8 @@ export function UtilityNav({
 }: UtilityNavProps) {
   return (
     <div className="flex items-center gap-6">
+
+      <ThemeToggle />
 
       {/* Search */}
 

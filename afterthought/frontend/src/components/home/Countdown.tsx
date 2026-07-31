@@ -3,28 +3,59 @@
 import { useEffect, useMemo, useState } from "react";
 
 interface CountdownProps {
-  releaseDate: string | Date;
   issueNumber: number;
 }
 
+function getNextTuesdayNoonUTC8(): Date {
+  const now = new Date();
+
+  // Calculate current offset for UTC+8 in milliseconds
+  // UTC+8 is 8 hours ahead of UTC.
+  const utc8Offset = 8 * 60 * 60 * 1000;
+
+  // Get current time in UTC
+  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60000);
+
+  // Get current time in UTC+8
+  const nowUTC8 = new Date(utcNow + utc8Offset);
+
+  let daysUntilTuesday = (2 - nowUTC8.getDay() + 7) % 7;
+
+  // If it's Tuesday but past 12:00 PM, we want next Tuesday
+  if (daysUntilTuesday === 0 && nowUTC8.getHours() >= 12) {
+    daysUntilTuesday = 7;
+  }
+
+  // Create target date in UTC+8
+  const targetUTC8 = new Date(nowUTC8);
+  targetUTC8.setDate(nowUTC8.getDate() + daysUntilTuesday);
+  targetUTC8.setHours(12, 0, 0, 0);
+
+  // Convert target UTC+8 back to local browser time to use in remaining calculation
+  return new Date(targetUTC8.getTime() - utc8Offset - (now.getTimezoneOffset() * 60000));
+}
+
 export function Countdown({
-  releaseDate,
   issueNumber,
 }: CountdownProps) {
-  const target = useMemo(
-    () => new Date(releaseDate),
-    [releaseDate]
-  );
-
-  const [remaining, setRemaining] = useState(getRemaining(target));
+  const [target, setTarget] = useState<Date | null>(null);
+  const [remaining, setRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
+    // Only set target on client to avoid hydration mismatch
+    const nextDate = getNextTuesdayNoonUTC8();
+    setTarget(nextDate);
+    setRemaining(getRemaining(nextDate));
+
     const timer = window.setInterval(() => {
-      setRemaining(getRemaining(target));
+      setRemaining(getRemaining(nextDate));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [target]);
+  }, []);
+
+  // Avoid hydration mismatch by rendering a skeleton or zeros on server
+  const isClient = target !== null;
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-32">
@@ -60,7 +91,7 @@ export function Countdown({
             <div className="text-right">
 
               <div className="text-7xl font-black tracking-tight text-white">
-                {remaining.days}
+                {isClient ? remaining.days : "0"}
               </div>
 
               <div className="mt-2 text-xs uppercase tracking-[0.3em] text-zinc-500">
@@ -73,17 +104,17 @@ export function Countdown({
 
               <TimeBlock
                 label="Hours"
-                value={remaining.hours}
+                value={isClient ? remaining.hours : 0}
               />
 
               <TimeBlock
                 label="Minutes"
-                value={remaining.minutes}
+                value={isClient ? remaining.minutes : 0}
               />
 
               <TimeBlock
                 label="Seconds"
-                value={remaining.seconds}
+                value={isClient ? remaining.seconds : 0}
               />
 
             </div>

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light dark;
   }
 
   html {
@@ -12,7 +12,7 @@
   }
 
   body {
-    @apply bg-background text-zinc-100 antialiased selection:bg-accent-amber/30 selection:text-white;
+    @apply bg-white dark:bg-background text-zinc-900 dark:text-zinc-100 antialiased selection:bg-accent-amber/30 selection:text-white;
   }
 
   h1,
@@ -21,7 +21,7 @@
   h4,
   h5,
   h6 {
-    @apply font-sans font-bold tracking-tight text-white;
+    @apply font-sans font-bold tracking-tight text-black dark:text-white;
   }
 
   button,
@@ -57,7 +57,7 @@
 .ProseMirror {
   max-width: 68ch;
   margin-inline: auto;
-  color: rgb(212 212 216);
+  @apply text-zinc-800 dark:text-zinc-300;
   line-height: 1.9;
   overflow-wrap: anywhere;
 }
@@ -93,7 +93,7 @@
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: white;
+  @apply text-black dark:text-white;
 }
 
 .article-content h2,
@@ -141,7 +141,7 @@
   max-width: 90%;
   border-left: 2px solid rgb(255 176 58 / 0.6);
   padding-left: 1.5rem;
-  color: rgb(161 161 170);
+  @apply text-zinc-600 dark:text-zinc-400;
   font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", serif;
   font-size: 1.35rem;
   line-height: 1.7;
@@ -215,14 +215,13 @@
 .ProseMirror th,
 .ProseMirror td {
   padding: .9rem 1rem;
-  border-bottom: 1px solid rgb(39 39 42);
+  @apply border-b border-zinc-200 dark:border-zinc-800;
   text-align: left;
 }
 
 .article-content th,
 .ProseMirror th {
-  color: white;
-  font-weight: 600;
+  @apply text-black dark:text-white font-semibold;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -233,7 +232,7 @@
 .ProseMirror hr {
   margin: 4rem 0;
   border: none;
-  border-top: 1px solid rgb(39 39 42);
+  @apply border-t border-zinc-200 dark:border-zinc-800;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -243,9 +242,8 @@
 .article-content pre,
 .ProseMirror pre {
   overflow-x: auto;
-  border: 1px solid rgb(39 39 42);
+  @apply border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950;
   border-radius: .75rem;
-  background: rgb(9 9 11);
   padding: 1.25rem;
   font-size: .92rem;
   line-height: 1.7;
@@ -254,9 +252,8 @@
 .article-content :not(pre) > code,
 .ProseMirror :not(pre) > code {
   border-radius: .3rem;
-  background: rgb(39 39 42);
+  @apply bg-zinc-100 dark:bg-zinc-800 text-amber-700 dark:text-[#d4af37];
   padding: .1rem .35rem;
-  color: #d4af37;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -300,23 +297,25 @@
   pointer-events: none;
 }
 
-* {
-  scrollbar-color: rgb(39 39 42) #09090b;
-  scrollbar-width: thin;
-}
+@media (prefers-color-scheme: dark) {
+  * {
+    scrollbar-color: rgb(39 39 42) #09090b;
+    scrollbar-width: thin;
+  }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: #09090b;
-}
+  ::-webkit-scrollbar-track {
+    background: #09090b;
+  }
 
-::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background: rgb(39 39 42);
+  ::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background: rgb(39 39 42);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 
 import "./globals.css";
+import { Providers } from "./providers";
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -43,9 +44,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} scroll-smooth`}>
-      <body className="flex min-h-screen flex-col bg-background font-sans text-zinc-100 antialiased">
-        {children}
+    <html lang="en" className={`${instrumentSerif.variable} scroll-smooth`} suppressHydrationWarning>
+      <body className="flex min-h-screen flex-col bg-background font-sans text-zinc-100 dark:text-zinc-100 text-zinc-900 antialiased transition-colors duration-300">
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

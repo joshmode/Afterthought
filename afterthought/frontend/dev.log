@@ -1,0 +1,38 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /app/afterthought/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles:
+   * /app/afterthought/frontend/package-lock.json
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3003 instead.
+   ▲ Next.js 15.5.21
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.0.2:3003
+
+ ✓ Starting...
+ ✓ Ready in 2.2s
+ ○ Compiling / ...
+ ✓ Compiled / in 5.6s (887 modules)
+ ✓ Compiled in 1718ms (355 modules)
+ GET / 200 in 7377ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1324ms (878 modules)
+ GET /api/auth/me 404 in 1655ms
+ ○ Compiling /essays ...
+ ✓ Compiled /essays in 533ms (890 modules)
+ GET /essays 200 in 917ms
+ GET /api/auth/me 404 in 100ms
+ ✓ Compiled in 1592ms (894 modules)
+ ✓ Compiled in 822ms (894 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/afterthought/frontend/.next/cache/webpack/client-development/13.pack.gz_' -> '/app/afterthought/frontend/.next/cache/webpack/client-development/13.pack.gz'
+ GET / 200 in 552ms
+ ✓ Compiled /_not-found in 292ms (885 modules)
+ GET /api/auth/me 404 in 610ms
+ ✓ Compiled /essays in 173ms (543 modules)
+ GET /essays 200 in 514ms
+ GET /api/auth/me 404 in 92ms
