@@ -168,8 +168,6 @@ async def delete_essay(
     ).scalars().first()
     if not essay:
         raise HTTPException(status_code=404, detail="Essay not found")
-    if essay.status in {"published", "archived"}:
-        raise HTTPException(status_code=409, detail="Published essays must be archived, not deleted")
     await db.delete(essay)
     await db.commit()
 
