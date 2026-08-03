@@ -57,9 +57,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="mx-auto flex max-w-[1600px] flex-col md:flex-row">
-        <aside className="border-b border-zinc-800 p-4 md:min-h-[calc(100vh-64px)] md:w-64 md:border-b-0 md:border-r md:p-6">
-          <nav aria-label="Editorial navigation" className="flex gap-5 overflow-x-auto font-mono text-sm md:flex-col md:gap-4">
+      <div className="mx-auto flex max-w-[1600px] flex-col md:flex-row min-w-0 w-full overflow-hidden">
+        <aside className="border-b border-zinc-800 p-4 md:min-h-[calc(100vh-64px)] md:w-64 md:border-b-0 md:border-r md:p-6 w-full md:w-auto">
+          <nav aria-label="Editorial navigation" className="flex gap-5 overflow-x-auto font-mono text-sm md:flex-col md:gap-4 pb-2 md:pb-0">
             {adminLinks.map(([href, label]) => (
               <Link
                 key={href}

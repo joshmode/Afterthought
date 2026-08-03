@@ -32,7 +32,7 @@ export default function EditorialEssaysPage() {
   }
 
   async function remove(id: number) {
-    if (!window.confirm("Permanently delete this unpublished essay?")) return;
+    if (!window.confirm("Permanently delete this essay? This action cannot be undone.")) return;
     try {
       await apiFetch<void>(`/api/editorial/essays/${id}`, { method: "DELETE" });
       setEssays((items) => items.filter((item) => item.id !== id));
@@ -86,11 +86,9 @@ export default function EditorialEssaysPage() {
                           Publish
                         </button>
                       )}
-                      {["draft", "scheduled"].includes(essay.status) && (
-                        <button onClick={() => void remove(essay.id)} className="text-red-400 hover:underline">
-                          Delete
-                        </button>
-                      )}
+                      <button onClick={() => void remove(essay.id)} className="text-red-400 hover:underline">
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
